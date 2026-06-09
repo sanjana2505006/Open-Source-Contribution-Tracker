@@ -211,4 +211,35 @@ export class GitHubGraphQL {
 
     return items;
   }
+
+  async fetchUserProfile(login: string): Promise<{
+    login: string;
+    name: string | null;
+    avatarUrl: string | null;
+    url: string;
+    databaseId: number;
+  } | null> {
+    const data = await this.query<{
+      user: {
+        login: string;
+        name: string | null;
+        avatarUrl: string | null;
+        url: string;
+        databaseId: number;
+      } | null;
+    }>(
+      `query($login: String!) {
+        user(login: $login) {
+          login
+          name
+          avatarUrl
+          url
+          databaseId
+        }
+      }`,
+      { login },
+    );
+
+    return data.user;
+  }
 }

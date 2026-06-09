@@ -13,3 +13,4 @@ export type {
   AnalyticsRange,
   AnalyticsBundle,
 } from './types/analytics.js';
+export type { ContributorProfile, WatchedContributor } from './types/explore.js';

@@ -3,6 +3,7 @@ import { UserMenu } from '../components/UserMenu';
 
 const links = [
   { to: '/', label: 'Overview', end: true, disabled: false, icon: 'grid' as const },
+  { to: '/explore', label: 'Explore', end: false, disabled: false, icon: 'search' as const },
   { to: '/repos', label: 'Repositories', end: false, disabled: true, icon: 'repo' as const },
   { to: '/journey', label: 'Journey', end: false, disabled: true, icon: 'timeline' as const },
 ];
@@ -12,6 +13,13 @@ function NavIcon({ name }: { name: string }) {
     return (
       <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
         <path d="M1 1h6v6H1V1zm0 8h6v6H1V9zm8-8h6v6H9V1zm0 8h6v6H9V9z" />
+      </svg>
+    );
+  }
+  if (name === 'search') {
+    return (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+        <path d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0 11-1.06 1.06l-3.04-3.04zm-2.122-2.122a4.5 4.5 0 105.659-5.659 4.5 4.5 0 00-5.66 5.66z" />
       </svg>
     );
   }
