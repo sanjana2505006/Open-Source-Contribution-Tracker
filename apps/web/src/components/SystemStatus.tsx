@@ -1,15 +1,10 @@
 import type { HealthResponse } from '@osct/shared';
 
-type StatusDotProps = {
-  ok: boolean;
-  label: string;
-};
-
-function StatusDot({ ok, label }: StatusDotProps) {
+function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-xs">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 font-mono text-[10px] text-[var(--color-muted)]">
       <span
-        className="inline-block h-2 w-2 rounded-full"
+        className={`inline-block h-1.5 w-1.5 rounded-full ${ok ? '' : 'animate-pulse-dot'}`}
         style={{ background: ok ? 'var(--color-ok)' : 'var(--color-bad)' }}
       />
       {label}
@@ -25,19 +20,24 @@ type SystemStatusProps = {
 
 export function SystemStatus({ health, error, loading }: SystemStatusProps) {
   if (loading) {
-    return <p className="font-mono text-xs text-[var(--color-muted)]">checking services…</p>;
+    return (
+      <div className="flex gap-2">
+        <span className="skeleton h-6 w-16 rounded-full" />
+        <span className="skeleton h-6 w-20 rounded-full" />
+      </div>
+    );
   }
 
   if (error) {
-    return <StatusDot ok={false} label="api unreachable" />;
+    return <StatusPill ok={false} label="api down" />;
   }
 
   if (!health) return null;
 
   return (
-    <div className="flex flex-wrap gap-4">
-      <StatusDot ok={health.status === 'ok'} label={`api ${health.status}`} />
-      <StatusDot ok={health.db === 'up'} label={`postgres ${health.db}`} />
+    <div className="flex flex-wrap gap-2">
+      <StatusPill ok={health.status === 'ok'} label={`api ${health.status}`} />
+      <StatusPill ok={health.db === 'up'} label={`db ${health.db}`} />
     </div>
   );
 }

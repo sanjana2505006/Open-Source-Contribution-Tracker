@@ -4,22 +4,31 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
 
-  --color-surface: #0f1114;
-  --color-panel: #171a1f;
-  --color-border: #2a2f38;
-  --color-muted: #8b939e;
-  --color-text: #e8eaed;
-  --color-accent: #3d8bfd;
-  --color-accent-dim: #2563a8;
-  --color-ok: #3ecf8e;
-  --color-warn: #e5a045;
-  --color-bad: #e05c5c;
+  --color-surface: #0c0e12;
+  --color-panel: #13161c;
+  --color-panel-hover: #181c24;
+  --color-border: #252a33;
+  --color-border-strong: #353c48;
+  --color-muted: #7a8494;
+  --color-text: #eef0f3;
+  --color-accent: #539bf5;
+  --color-accent-dim: #316dca;
+  --color-accent-glow: rgba(83, 155, 245, 0.15);
+  --color-ok: #3fb950;
+  --color-warn: #d29922;
+  --color-bad: #f85149;
+  --color-pr: #539bf5;
+  --color-repo: #3fb950;
+  --color-commit: #a371f7;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--color-surface);
+  background-color: var(--color-surface);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(83, 155, 245, 0.08), transparent),
+    radial-gradient(circle at 100% 100%, rgba(63, 185, 80, 0.04), transparent);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -36,4 +45,106 @@ a {
 
 button {
   font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+
+.animate-fade-up-delay-1 {
+  animation-delay: 0.05s;
+}
+
+.animate-fade-up-delay-2 {
+  animation-delay: 0.1s;
+}
+
+.animate-fade-up-delay-3 {
+  animation-delay: 0.15s;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.panel {
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  border-radius: 8px;
+}
+
+.panel-interactive {
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.panel-interactive:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-panel-hover);
+}
+
+.nav-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-panel) 0%,
+    var(--color-panel-hover) 50%,
+    var(--color-panel) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }

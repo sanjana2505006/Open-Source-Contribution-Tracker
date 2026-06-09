@@ -1,13 +1,13 @@
 export const chartColors = {
-  accent: '#3d8bfd',
-  commit: '#3ecf8e',
-  pr: '#3d8bfd',
-  open: '#3d8bfd',
-  closed: '#8b939e',
-  merged: '#3ecf8e',
-  muted: '#8b939e',
-  grid: '#2a2f38',
-  text: '#8b939e',
+  accent: '#539bf5',
+  commit: '#a371f7',
+  pr: '#539bf5',
+  open: '#539bf5',
+  closed: '#7a8494',
+  merged: '#3fb950',
+  muted: '#7a8494',
+  grid: '#252a33',
+  text: '#7a8494',
 };
 
 export function formatMonth(isoDate: string): string {

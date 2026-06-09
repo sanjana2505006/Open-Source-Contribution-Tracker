@@ -2,6 +2,7 @@ import type { AnalyticsBundle } from '@osct/shared';
 import { ActivityChart } from '../charts/ActivityChart';
 import { LanguageChart } from '../charts/LanguageChart';
 import { PullRequestChart } from '../charts/PullRequestChart';
+import { Panel } from './Panel';
 import { DateRangeFilter, rangeToQuery, type RangePreset } from './DateRangeFilter';
 import { useEffect, useState } from 'react';
 import { fetchAnalytics } from '../lib/api';
@@ -33,32 +34,36 @@ export function AnalyticsPanel() {
   }, [range]);
 
   return (
-    <section className="mt-8">
+    <section className="mt-8 animate-fade-up">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-medium">Analytics</h3>
+        <div>
+          <h3 className="text-sm font-medium">Analytics</h3>
+          <p className="text-xs text-[var(--color-muted)]">Contribution trends over time</p>
+        </div>
         <DateRangeFilter value={range} onChange={setRange} />
       </div>
 
       {loading && (
-        <p className="font-mono text-xs text-[var(--color-muted)]">loading charts…</p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="panel skeleton h-64 lg:col-span-2" />
+          <div className="panel skeleton h-48" />
+          <div className="panel skeleton h-48" />
+        </div>
       )}
 
       {!loading && data && (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded border border-[var(--color-border)] bg-[var(--color-panel)] p-4 lg:col-span-2">
-            <p className="mb-3 text-xs text-[var(--color-muted)]">Activity by month</p>
+          <Panel title="Activity" subtitle="Monthly PRs and commits" className="lg:col-span-2">
             <ActivityChart data={data.timeline} />
-          </div>
+          </Panel>
 
-          <div className="rounded border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
-            <p className="mb-3 text-xs text-[var(--color-muted)]">Pull requests</p>
+          <Panel title="Pull requests" subtitle="By status">
             <PullRequestChart data={data.pullRequests} />
-          </div>
+          </Panel>
 
-          <div className="rounded border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
-            <p className="mb-3 text-xs text-[var(--color-muted)]">By language</p>
+          <Panel title="Languages" subtitle="Top repos by activity">
             <LanguageChart data={data.languages} />
-          </div>
+          </Panel>
         </div>
       )}
     </section>

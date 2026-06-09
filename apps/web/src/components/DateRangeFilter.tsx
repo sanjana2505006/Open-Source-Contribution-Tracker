@@ -32,16 +32,16 @@ export function rangeToQuery(preset: RangePreset): { from?: string; to?: string 
 
 export function DateRangeFilter({ value, onChange }: Props) {
   return (
-    <div className="flex gap-1">
+    <div className="inline-flex rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={[
-            'rounded px-2.5 py-1 font-mono text-xs',
+            'rounded px-2.5 py-1 font-mono text-[11px] transition-colors',
             value === opt.value
-              ? 'bg-[var(--color-surface)] text-[var(--color-text)]'
+              ? 'bg-[var(--color-accent)] text-white'
               : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
           ].join(' ')}
         >
