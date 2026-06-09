@@ -30,4 +30,6 @@ npm run db:migrate
 
 ## Scopes
 
-The app requests `read:user` and `user:email` — enough for profile data. Repository sync in Phase 3 uses the stored token; additional scopes can be added then if needed.
+The app requests `read:user`, `user:email`, and `public_repo` — profile data plus public repository and contribution access.
+
+After updating scopes, **sign out and sign in again**, then run **Sync from GitHub** to pull all PRs and contributed repos (including ones you never cloned locally).

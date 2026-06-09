@@ -36,7 +36,7 @@ export class UserRepositoryLinkRepository {
     return Number(result.rows[0]?.count ?? 0);
   }
 
-  async listForUser(userId: string, limit = 20): Promise<RepositorySummary[]> {
+  async listForUser(userId: string, limit = 100): Promise<RepositorySummary[]> {
     const result = await this.db.query<{
       id: string;
       full_name: string;

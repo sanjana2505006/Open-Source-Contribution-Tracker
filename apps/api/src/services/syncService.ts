@@ -1,10 +1,11 @@
 import type { StatsSummary, SyncStatus } from '@osct/shared';
 import type { Env } from '../config/env.js';
+import { GitHubApi, RateLimitError } from '../infrastructure/github/api.js';
 import {
-  GitHubApi,
-  RateLimitError,
-  type GitHubSearchIssue,
-} from '../infrastructure/github/api.js';
+  GitHubGraphQL,
+  graphRepoToGitHubRepo,
+  type GraphQLPullRequest,
+} from '../infrastructure/github/graphql.js';
 import { ContributionRepository } from '../repositories/contributionRepository.js';
 import { OAuthRepository } from '../repositories/oauthRepository.js';
 import { RepositoryRepository } from '../repositories/repositoryRepository.js';
@@ -15,6 +16,12 @@ import { UserRepositoryLinkRepository } from '../repositories/userRepositoryLink
 function commitGithubId(sha: string): number {
   const hex = sha.replace(/[^a-f0-9]/gi, '').slice(0, 15);
   return Number.parseInt(hex, 16);
+}
+
+function prState(pr: GraphQLPullRequest): 'open' | 'closed' | 'merged' {
+  if (pr.state === 'MERGED' || pr.merged) return 'merged';
+  if (pr.state === 'OPEN') return 'open';
+  return 'closed';
 }
 
 export class SyncService {
@@ -72,9 +79,22 @@ export class SyncService {
       }
 
       const api = new GitHubApi(token);
+      const gql = new GitHubGraphQL(token);
 
-      const ghRepos = await api.listRepos();
-      for (const ghRepo of ghRepos) {
+      const contributedRepos = await gql.listContributedRepositories(user.username);
+      for (const node of contributedRepos) {
+        try {
+          const repo = await this.repos.upsert(graphRepoToGitHubRepo(node));
+          await this.userRepos.linkRepoOnly(userId, repo.id);
+          reposSynced++;
+        } catch {
+          reposFailed++;
+        }
+      }
+      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
+
+      const ownedRepos = await api.listRepos();
+      for (const ghRepo of ownedRepos) {
         try {
           const repo = await this.repos.upsert(ghRepo);
           await this.userRepos.linkRepoOnly(userId, repo.id);
@@ -82,12 +102,36 @@ export class SyncService {
         } catch {
           reposFailed++;
         }
-        await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
       }
+      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
-      const prs = await api.searchPullRequests(user.username);
-      for (const pr of prs) {
-        await this.ingestPullRequest(userId, pr);
+      const pullRequests = await gql.listAllPullRequests(user.username);
+      let prCount = 0;
+
+      for (const pr of pullRequests) {
+        try {
+          const repo = await this.repos.upsert(graphRepoToGitHubRepo(pr.repository));
+          await this.userRepos.linkRepoOnly(userId, repo.id);
+
+          const state = prState(pr);
+          await this.contributions.upsert({
+            userId,
+            repositoryId: repo.id,
+            githubId: pr.databaseId,
+            type: 'pull_request',
+            title: pr.title,
+            state,
+            isMerged: state === 'merged',
+            occurredAt: new Date(pr.createdAt),
+            htmlUrl: pr.url,
+          });
+          prCount++;
+          if (prCount % 25 === 0) {
+            await this.jobs.updateProgress(jobId, reposSynced + prCount, reposFailed);
+          }
+        } catch {
+          reposFailed++;
+        }
       }
 
       const events = await api.listPublicEvents(user.username);
@@ -96,7 +140,14 @@ export class SyncService {
 
         const fullName = event.repo.name;
         let repo = await this.repos.findByFullName(fullName);
-        if (!repo) continue;
+        if (!repo) {
+          try {
+            repo = await this.repos.upsert(await api.fetchRepo(fullName));
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+          } catch {
+            continue;
+          }
+        }
 
         for (const commit of event.payload.commits) {
           await this.contributions.upsert({
@@ -115,7 +166,7 @@ export class SyncService {
 
       await this.userRepos.rebuildFromContributions(userId);
 
-      const status = reposFailed > 0 && reposSynced > 0 ? 'partial' : 'completed';
+      const status = reposFailed > 0 ? 'partial' : 'completed';
       await this.jobs.complete(jobId, status, null, null);
     } catch (err) {
       const resetAt = err instanceof RateLimitError ? err.resetAt : null;
@@ -128,48 +179,5 @@ export class SyncService {
         resetAt,
       );
     }
-  }
-
-  private async ingestPullRequest(
-    userId: string,
-    pr: GitHubSearchIssue,
-  ): Promise<void> {
-    let repo = pr.repository
-      ? await this.repos.upsert(pr.repository)
-      : await this.resolveRepoFromUrl(pr.repository_url, pr);
-    if (!repo) return;
-
-    const isMerged = Boolean(pr.pull_request?.merged_at);
-    const state = isMerged ? 'merged' : pr.state;
-
-    await this.contributions.upsert({
-      userId,
-      repositoryId: repo.id,
-      githubId: pr.id,
-      type: 'pull_request',
-      title: pr.title,
-      state,
-      isMerged,
-      occurredAt: new Date(pr.created_at),
-      htmlUrl: pr.html_url,
-    });
-  }
-
-  private async resolveRepoFromUrl(
-    repositoryUrl: string,
-    pr: GitHubSearchIssue,
-  ) {
-    const match = repositoryUrl.match(/\/repos\/([^/]+)\/([^/]+)/);
-    if (!match) return null;
-
-    const fullName = `${match[1]}/${match[2]}`;
-    const existing = await this.repos.findByFullName(fullName);
-    if (existing) return existing;
-
-    if (pr.repository) {
-      return this.repos.upsert(pr.repository);
-    }
-
-    return null;
   }
 }

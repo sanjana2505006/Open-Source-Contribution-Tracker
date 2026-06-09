@@ -112,18 +112,22 @@ export class GitHubApi {
     return items;
   }
 
+  async fetchRepo(fullName: string): Promise<GitHubRepo> {
+    return this.request<GitHubRepo>(`/repos/${fullName}`);
+  }
+
   async listRepos(): Promise<GitHubRepo[]> {
     return this.requestAllPages<GitHubRepo>(
       (page) =>
         `/user/repos?affiliation=owner,collaborator,organization_member&sort=pushed&per_page=100&page=${page}`,
-      5,
+      10,
     );
   }
 
   async searchPullRequests(username: string): Promise<GitHubSearchIssue[]> {
     const items: GitHubSearchIssue[] = [];
 
-    for (let page = 1; page <= 5; page++) {
+    for (let page = 1; page <= 10; page++) {
       const data = await this.request<{
         items: GitHubSearchIssue[];
         incomplete_results: boolean;

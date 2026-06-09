@@ -64,18 +64,16 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
       </button>
 
       {running && status && (
-        <div className="w-full max-w-[180px]">
+        <div className="w-full max-w-[200px]">
           <div className="h-1 overflow-hidden rounded-full bg-[var(--color-border)]">
             <div
               className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
-              style={{ width: `${Math.min(95, 20 + status.reposSynced * 8)}%` }}
+              style={{ width: `${Math.min(95, 15 + status.reposSynced * 2)}%` }}
             />
           </div>
-          {status.reposSynced > 0 && (
-            <p className="mt-1 text-right font-mono text-[10px] text-[var(--color-muted)]">
-              {status.reposSynced} repos
-            </p>
-          )}
+          <p className="mt-1 text-right font-mono text-[10px] text-[var(--color-muted)]">
+            {status.reposSynced > 0 ? `${status.reposSynced} items processed` : 'fetching from GitHub…'}
+          </p>
         </div>
       )}
 

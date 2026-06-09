@@ -185,9 +185,13 @@ export function OverviewPage() {
           <div className="mt-8 animate-fade-up">
             <Panel
               title="Repositories"
-              subtitle={`${repos.length} synced · sorted by recent activity`}
+              subtitle={
+                stats
+                  ? `${stats.repositories} total · showing ${repos.length}`
+                  : `${repos.length} repositories`
+              }
             >
-              <RepoList repos={repos.slice(0, 8)} />
+              <RepoList repos={repos} />
             </Panel>
           </div>
         )}

@@ -86,8 +86,8 @@ export function fetchStats(): Promise<StatsSummary> {
   return apiFetch<StatsSummary>('/api/v1/stats/summary');
 }
 
-export function fetchRepositories(): Promise<RepositorySummary[]> {
-  return apiFetch<RepositorySummary[]>('/api/v1/repositories');
+export function fetchRepositories(limit = 100): Promise<RepositorySummary[]> {
+  return apiFetch<RepositorySummary[]>(`/api/v1/repositories?limit=${limit}`);
 }
 
 export function fetchAnalytics(from?: string, to?: string): Promise<AnalyticsBundle> {

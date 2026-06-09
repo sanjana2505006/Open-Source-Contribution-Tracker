@@ -10,7 +10,10 @@ export function createRepositoryRoutes(db: pg.Pool) {
     async list(req: Request, res: Response): Promise<void> {
       if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
 
-      const repos = await links.listForUser(req.user.id);
+      const limitParam = typeof req.query.limit === 'string' ? Number(req.query.limit) : 100;
+      const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 500) : 100;
+
+      const repos = await links.listForUser(req.user.id, limit);
       res.json({ data: repos });
     },
   };
