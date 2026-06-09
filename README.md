@@ -7,7 +7,7 @@ Track and analyze your GitHub open-source contributions. Built for GSoC/LFX prep
 - **Frontend:** React, TypeScript, Tailwind CSS, D3.js (later phases)
 - **Backend:** Node.js, Express, TypeScript
 - **Database:** PostgreSQL
-- **Auth:** GitHub OAuth (Phase 2)
+- **Auth:** GitHub OAuth
 
 ## Repo layout
 
@@ -23,6 +23,7 @@ docs/              Architecture and requirements
 
 - Node.js 20+
 - PostgreSQL 15+
+- GitHub OAuth App ([setup guide](./docs/github-oauth.md))
 
 Create the database:
 
@@ -34,8 +35,11 @@ createdb osct
 
 ```bash
 cp .env.example .env
-# edit DATABASE_URL if your postgres credentials differ
+```
 
+Fill in `.env`: `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `SESSION_SECRET` (see [docs/github-oauth.md](./docs/github-oauth.md)).
+
+```bash
 npm install
 npm run db:migrate
 npm run dev
@@ -68,8 +72,8 @@ npm run dev:web   # port 5173, proxies /api to the API
 |-------|--------|-------|
 | 0 | done | Planning, schema design |
 | 1 | done | Monorepo, Express, React, Postgres, Tailwind |
-| 2 | next | GitHub OAuth |
-| 3 | | GitHub sync |
+| 2 | done | GitHub OAuth, sessions, user profile |
+| 3 | next | GitHub sync |
 | 4 | | Analytics dashboard |
 | 5 | | Contribution journey |
 | 6 | | Repository insights |

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { UserMenu } from '../components/UserMenu';
 
 const links = [
   { to: '/', label: 'Overview', end: true },
@@ -19,7 +20,7 @@ export function Layout() {
           </h1>
         </div>
 
-        <nav className="flex flex-col gap-0.5 p-2">
+        <nav className="flex flex-1 flex-col gap-0.5 p-2">
           {links.map((link) =>
             link.disabled ? (
               <span
@@ -47,6 +48,8 @@ export function Layout() {
             ),
           )}
         </nav>
+
+        <UserMenu />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
