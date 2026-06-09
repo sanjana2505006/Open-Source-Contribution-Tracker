@@ -1,0 +1,22 @@
+{
+  "name": "open-source-contribution-tracker",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,gray \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=@osct/api",
+    "dev:web": "npm run dev --workspace=@osct/web",
+    "build": "npm run build --workspace=@osct/shared && npm run build --workspace=@osct/api && npm run build --workspace=@osct/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run db:migrate --workspace=@osct/api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

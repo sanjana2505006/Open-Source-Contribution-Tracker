@@ -1,127 +1,83 @@
 # Open Source Contribution Tracker
 
-A full-stack web application that helps developers **track, analyze, and showcase** their open-source contributions across GitHub repositories.
+Track and analyze your GitHub open-source contributions. Built for GSoC/LFX prep, active contributors, and portfolio building.
 
-Built for students preparing for **GSoC/LFX**, active contributors, and developers building an **OSS portfolio**.
+## Stack
 
----
+- **Frontend:** React, TypeScript, Tailwind CSS, D3.js (later phases)
+- **Backend:** Node.js, Express, TypeScript
+- **Database:** PostgreSQL
+- **Auth:** GitHub OAuth (Phase 2)
 
-## Features (Roadmap)
-
-| Status | Feature |
-|--------|---------|
-| Planned | GitHub OAuth authentication |
-| Planned | Repository & contribution synchronization |
-| Planned | Analytics dashboard with D3.js visualizations |
-| Planned | Language & pull request statistics |
-| Planned | Contribution journey timeline & milestones |
-| Planned | Per-repository insights |
-| Planned | OSS opportunity discovery |
-| Planned | AI-powered recommendations |
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | React, TypeScript, Tailwind CSS, D3.js |
-| Backend | Node.js, Express, TypeScript |
-| Database | PostgreSQL |
-| Auth | GitHub OAuth |
-| API | REST |
-
----
-
-## Architecture
-
-Monorepo layout with shared TypeScript types:
+## Repo layout
 
 ```
-apps/
-  api/     → Express REST API
-  web/     → React SPA (Vite)
-packages/
-  shared/  → Shared types & validation schemas
-database/
-  schema.sql, migrations/
-docs/
-  requirements, architecture, feature plan
+apps/api/          Express REST API
+apps/web/          React SPA (Vite)
+packages/shared/   Shared TypeScript types
+database/          Schema reference + SQL migrations
+docs/              Architecture and requirements
 ```
 
-See [docs/architecture.md](./docs/architecture.md) for system design details.
-
----
-
-## Getting Started
-
-> **Note:** Application code begins in Phase 1. This repository currently contains Phase 0 planning artifacts only.
-
-### Prerequisites (for upcoming phases)
+## Prerequisites
 
 - Node.js 20+
 - PostgreSQL 15+
-- GitHub OAuth App ([create one here](https://github.com/settings/developers))
 
-### Planned Setup (Phase 1+)
+Create the database:
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-org>/open-source-contribution-tracker.git
-cd open-source-contribution-tracker
+createdb osct
+```
 
-# Install dependencies
-npm install
+## Setup
 
-# Configure environment
+```bash
 cp .env.example .env
-# Edit .env with database URL and GitHub OAuth credentials
+# edit DATABASE_URL if your postgres credentials differ
 
-# Run database migrations
+npm install
 npm run db:migrate
-
-# Start development servers
 npm run dev
 ```
 
----
+- Web: http://localhost:5173
+- API: http://localhost:4000/api/v1/health
 
-## Documentation
+Run API and web separately if you prefer:
 
-| Document | Description |
-|----------|-------------|
-| [Requirements](./docs/requirements.md) | Functional & non-functional requirements |
-| [Architecture](./docs/architecture.md) | System design, API outline, security model |
-| [Feature Plan](./docs/feature-plan.md) | Phased delivery breakdown |
-| [Folder Structure](./docs/folder-structure.md) | Monorepo layout contract |
-| [Database Schema](./database/schema.sql) | PostgreSQL canonical schema |
+```bash
+npm run dev:api   # port 4000
+npm run dev:web   # port 5173, proxies /api to the API
+```
 
----
+## Scripts
 
-## Development Phases
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start API + web |
+| `npm run dev:api` | API only |
+| `npm run dev:web` | Web only |
+| `npm run build` | Build all packages |
+| `npm run typecheck` | Typecheck all workspaces |
+| `npm run db:migrate` | Apply pending SQL migrations |
 
-Development proceeds in incremental phases (0–8). Each phase is a reviewable unit with its own commit history.
+## Development phases
 
-| Phase | Focus |
-|-------|-------|
-| 0 | Requirements, architecture, schema *(current)* |
-| 1 | Monorepo setup, Express, React, PostgreSQL, Tailwind |
-| 2 | GitHub OAuth & user profiles |
-| 3 | GitHub API sync |
-| 4 | Analytics dashboard |
-| 5 | Contribution journey |
-| 6 | Repository insights |
-| 7 | OSS opportunity discovery |
-| 8 | AI recommendations |
+| Phase | Status | Focus |
+|-------|--------|-------|
+| 0 | done | Planning, schema design |
+| 1 | done | Monorepo, Express, React, Postgres, Tailwind |
+| 2 | next | GitHub OAuth |
+| 3 | | GitHub sync |
+| 4 | | Analytics dashboard |
+| 5 | | Contribution journey |
+| 6 | | Repository insights |
+| 7 | | OSS discovery |
+| 8 | | AI recommendations |
 
----
-
-## Contributing
-
-Contributions are welcome. Please open an issue before starting significant work. Development follows the phased roadmap above.
-
----
+See [docs/architecture.md](./docs/architecture.md) for system design.
 
 ## License
 
-MIT *(to be added in Phase 1)*
+MIT

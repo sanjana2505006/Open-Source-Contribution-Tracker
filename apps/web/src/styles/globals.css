@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+
+  --color-surface: #0f1114;
+  --color-panel: #171a1f;
+  --color-border: #2a2f38;
+  --color-muted: #8b939e;
+  --color-text: #e8eaed;
+  --color-accent: #3d8bfd;
+  --color-accent-dim: #2563a8;
+  --color-ok: #3ecf8e;
+  --color-warn: #e5a045;
+  --color-bad: #e05c5c;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
