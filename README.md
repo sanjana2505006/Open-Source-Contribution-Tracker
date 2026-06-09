@@ -73,9 +73,9 @@ npm run dev:web   # port 5173, proxies /api to the API
 | 0 | done | Planning, schema design |
 | 1 | done | Monorepo, Express, React, Postgres, Tailwind |
 | 2 | done | GitHub OAuth, sessions, user profile |
-| 3 | next | GitHub sync |
-| 4 | | Analytics dashboard |
-| 5 | | Contribution journey |
+| 3 | done | GitHub sync |
+| 4 | done | Analytics dashboard |
+| 5 | next | Contribution journey |
 | 6 | | Repository insights |
 | 7 | | OSS discovery |
 | 8 | | AI recommendations |
