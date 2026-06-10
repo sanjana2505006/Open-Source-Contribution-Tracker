@@ -11,10 +11,12 @@ import { createRepositoryRoutes } from './routes/repositories.js';
 import { createExploreRoutes } from './routes/explore.js';
 import { createPullRequestRoutes } from './routes/pullRequests.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
+import { createJourneyRoutes } from './routes/journey.js';
 import { AuthService } from './services/authService.js';
 import { SyncService } from './services/syncService.js';
 import { AnalyticsService } from './services/analyticsService.js';
 import { ExploreService } from './services/exploreService.js';
+import { JourneyService } from './services/journeyService.js';
 import { getPool } from './infrastructure/db/pool.js';
 
 export function createApp(env: Env) {
@@ -23,6 +25,7 @@ export function createApp(env: Env) {
   const sync = new SyncService(env, pool);
   const analytics = new AnalyticsService(pool);
   const explore = new ExploreService(env, pool);
+  const journey = new JourneyService(pool);
   const authRoutes = createAuthRoutes(auth, env);
   const userRoutes = createUserRoutes();
   const syncRoutes = createSyncRoutes(sync);
@@ -30,6 +33,7 @@ export function createApp(env: Env) {
   const analyticsRoutes = createAnalyticsRoutes(analytics);
   const exploreRoutes = createExploreRoutes(explore);
   const pullRequestRoutes = createPullRequestRoutes(pool);
+  const journeyRoutes = createJourneyRoutes(journey);
 
   const app = express();
 
@@ -89,6 +93,9 @@ export function createApp(env: Env) {
 
   app.get('/api/v1/pull-requests', requireAuth, (req, res, next) => {
     pullRequestRoutes.list(req, res).catch(next);
+  });
+  app.get('/api/v1/journey', requireAuth, (req, res, next) => {
+    journeyRoutes.bundle(req, res).catch(next);
   });
 
   app.use(errorHandler);

@@ -110,4 +110,55 @@ export class ContributionRepository {
       total: Number(countResult.rows[0]?.count ?? 0),
     };
   }
+
+  async findAtPosition(
+    userId: string,
+    position: number,
+    opts?: { type?: 'commit' | 'pull_request'; mergedOnly?: boolean },
+  ): Promise<{
+    id: string;
+    title: string | null;
+    type: string;
+    occurred_at: Date;
+    html_url: string;
+    repository_id: string;
+    full_name: string;
+  } | null> {
+    if (position < 1) return null;
+
+    const params: unknown[] = [userId];
+    const filters: string[] = [];
+
+    if (opts?.type) {
+      params.push(opts.type);
+      filters.push(`AND c.type = $${params.length}`);
+    }
+
+    if (opts?.mergedOnly) {
+      filters.push('AND c.is_merged = TRUE');
+    }
+
+    const offset = position - 1;
+    params.push(offset);
+
+    const result = await this.db.query<{
+      id: string;
+      title: string | null;
+      type: string;
+      occurred_at: Date;
+      html_url: string;
+      repository_id: string;
+      full_name: string;
+    }>(
+      `SELECT c.id, c.title, c.type::text, c.occurred_at, c.html_url, c.repository_id, r.full_name
+       FROM contributions c
+       JOIN repositories r ON r.id = c.repository_id
+       WHERE c.user_id = $1 ${filters.join(' ')}
+       ORDER BY c.occurred_at ASC, c.id ASC
+       LIMIT 1 OFFSET $${params.length}`,
+      params,
+    );
+
+    return result.rows[0] ?? null;
+  }
 }

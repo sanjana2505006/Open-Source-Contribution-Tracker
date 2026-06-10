@@ -1,6 +1,7 @@
 import type {
   AnalyticsBundle,
   HealthResponse,
+  JourneyBundle,
   PullRequestList,
   RepositorySummary,
   StatsSummary,
@@ -102,4 +103,8 @@ export function fetchAnalytics(from?: string, to?: string): Promise<AnalyticsBun
 export function fetchPullRequests(repo: string): Promise<PullRequestList> {
   const params = new URLSearchParams({ repo, limit: '500' });
   return apiFetch<PullRequestList>(`/api/v1/pull-requests?${params}`);
+}
+
+export function fetchJourney(): Promise<JourneyBundle> {
+  return apiFetch<JourneyBundle>('/api/v1/journey');
 }

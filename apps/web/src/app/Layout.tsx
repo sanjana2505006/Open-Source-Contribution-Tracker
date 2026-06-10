@@ -5,7 +5,7 @@ const links = [
   { to: '/', label: 'Overview', end: true, disabled: false, icon: 'grid' as const },
   { to: '/explore', label: 'Explore', end: false, disabled: false, icon: 'search' as const },
   { to: '/repos', label: 'My PRs', end: false, disabled: false, icon: 'repo' as const },
-  { to: '/journey', label: 'Journey', end: false, disabled: true, icon: 'timeline' as const },
+  { to: '/journey', label: 'Journey', end: false, disabled: false, icon: 'timeline' as const },
 ];
 
 function NavIcon({ name }: { name: string }) {

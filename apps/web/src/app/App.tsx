@@ -4,6 +4,7 @@ import { Layout } from './Layout';
 import { OverviewPage } from '../pages/OverviewPage';
 import { ExplorePage } from '../pages/ExplorePage';
 import { RepositoriesPage } from '../pages/RepositoriesPage';
+import { JourneyPage } from '../pages/JourneyPage';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
             <Route index element={<OverviewPage />} />
             <Route path="explore" element={<ExplorePage />} />
             <Route path="repos" element={<RepositoriesPage />} />
+            <Route path="journey" element={<JourneyPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

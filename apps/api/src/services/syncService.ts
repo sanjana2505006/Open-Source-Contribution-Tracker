@@ -12,6 +12,7 @@ import { RepositoryRepository } from '../repositories/repositoryRepository.js';
 import { SyncJobRepository } from '../repositories/syncJobRepository.js';
 import { UserRepository } from '../repositories/userRepository.js';
 import { UserRepositoryLinkRepository } from '../repositories/userRepositoryLinkRepository.js';
+import { JourneyService } from './journeyService.js';
 
 function commitGithubId(sha: string): number {
   const hex = sha.replace(/[^a-f0-9]/gi, '').slice(0, 15);
@@ -31,6 +32,7 @@ export class SyncService {
   private repos: RepositoryRepository;
   private contributions: ContributionRepository;
   private userRepos: UserRepositoryLinkRepository;
+  private journey: JourneyService;
 
   constructor(
     private env: Env,
@@ -42,6 +44,7 @@ export class SyncService {
     this.repos = new RepositoryRepository(db);
     this.contributions = new ContributionRepository(db);
     this.userRepos = new UserRepositoryLinkRepository(db);
+    this.journey = new JourneyService(db);
   }
 
   async getStatus(userId: string): Promise<SyncStatus | null> {
@@ -165,6 +168,7 @@ export class SyncService {
       }
 
       await this.userRepos.rebuildFromContributions(userId);
+      await this.journey.refreshMilestones(userId);
 
       const status = reposFailed > 0 ? 'partial' : 'completed';
       await this.jobs.complete(jobId, status, null, null);
