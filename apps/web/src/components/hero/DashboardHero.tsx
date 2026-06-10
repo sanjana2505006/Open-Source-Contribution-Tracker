@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { SwarmCanvas } from './SwarmCanvas';
+
 const DashboardHeroCanvas = lazy(() =>
   import('./DashboardHeroCanvas').then((m) => ({ default: m.DashboardHeroCanvas })),
 );
 
 function HeroFallback() {
   return (
-    <div className="hero-fallback" aria-hidden>
+    <div className="hero-fallback hero-fallback--immersive" aria-hidden>
       <span className="hero-fallback__ring hero-fallback__ring--1" />
       <span className="hero-fallback__ring hero-fallback__ring--2" />
       <span className="hero-fallback__core" />
@@ -34,12 +36,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-export function DashboardHero({
-  eyebrow,
-  title,
-  description,
-  actions,
-}: Props) {
+export function DashboardHero({ eyebrow, title, description, actions }: Props) {
   const reducedMotion = usePrefersReducedMotion();
   const [sceneReady, setSceneReady] = useState(false);
 
@@ -50,27 +47,25 @@ export function DashboardHero({
   }, [reducedMotion]);
 
   return (
-    <section className="hero-banner animate-fade-up">
-      <div className="hero-banner__glow" aria-hidden />
+    <section className={`hero-immersive animate-fade-up ${sceneReady ? 'hero-immersive--open' : ''}`}>
+      <div className="hero-immersive__stage" aria-hidden>
+        {!reducedMotion && <SwarmCanvas />}
+        {!reducedMotion ? (
+          <Suspense fallback={<HeroFallback />}>
+            {sceneReady && <DashboardHeroCanvas />}
+          </Suspense>
+        ) : (
+          <HeroFallback />
+        )}
+      </div>
 
-      <div className="hero-banner__layout">
-        <div className="hero-banner__copy">
-          {eyebrow && <p className="hero-banner__eyebrow">{eyebrow}</p>}
-          <h2 className="hero-banner__title">{title}</h2>
-          {description && <p className="hero-banner__description">{description}</p>}
+      <div className="hero-immersive__scrim" aria-hidden />
 
-          {actions && <div className="hero-banner__actions">{actions}</div>}
-        </div>
-
-        <div className={`hero-canvas ${sceneReady ? 'hero-canvas--open' : ''}`}>
-          {reducedMotion ? (
-            <HeroFallback />
-          ) : (
-            <Suspense fallback={<HeroFallback />}>
-              {sceneReady && <DashboardHeroCanvas />}
-            </Suspense>
-          )}
-        </div>
+      <div className="hero-immersive__content">
+        {eyebrow && <p className="hero-immersive__eyebrow">{eyebrow}</p>}
+        <h2 className="hero-immersive__title">{title}</h2>
+        {description && <p className="hero-immersive__description">{description}</p>}
+        {actions && <div className="hero-immersive__actions">{actions}</div>}
       </div>
     </section>
   );
