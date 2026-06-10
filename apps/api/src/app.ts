@@ -12,6 +12,7 @@ import { createSyncRoutes } from './routes/sync.js';
 import { createRepositoryRoutes } from './routes/repositories.js';
 import { createExploreRoutes } from './routes/explore.js';
 import { createPullRequestRoutes } from './routes/pullRequests.js';
+import { createIssueRoutes } from './routes/issues.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
 import { createJourneyRoutes } from './routes/journey.js';
 import { AuthService } from './services/authService.js';
@@ -35,6 +36,7 @@ export function createApp(env: Env) {
   const analyticsRoutes = createAnalyticsRoutes(analytics);
   const exploreRoutes = createExploreRoutes(explore);
   const pullRequestRoutes = createPullRequestRoutes(pool);
+  const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);
 
   const app = express();
@@ -95,6 +97,9 @@ export function createApp(env: Env) {
 
   app.get('/api/v1/pull-requests', requireAuth, (req, res, next) => {
     pullRequestRoutes.list(req, res).catch(next);
+  });
+  app.get('/api/v1/issues', requireAuth, (req, res, next) => {
+    issueRoutes.list(req, res).catch(next);
   });
   app.get('/api/v1/journey', requireAuth, (req, res, next) => {
     journeyRoutes.bundle(req, res).catch(next);

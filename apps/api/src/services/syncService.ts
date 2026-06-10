@@ -1,9 +1,12 @@
 import type { StatsSummary, SyncStatus } from '@osct/shared';
 import type { Env } from '../config/env.js';
-import { GitHubApi, RateLimitError } from '../infrastructure/github/api.js';
+import { GitHubApi, RateLimitError, type GitHubSearchIssue } from '../infrastructure/github/api.js';
 import {
   GitHubGraphQL,
+  contributionGithubId,
   graphRepoToGitHubRepo,
+  issueState,
+  type GraphQLIssue,
   type GraphQLPullRequest,
 } from '../infrastructure/github/graphql.js';
 import { ContributionRepository } from '../repositories/contributionRepository.js';
@@ -137,7 +140,7 @@ export class SyncService {
         }
       }
 
-      const events = await api.listPublicEvents(user.username);
+      const events = await api.listUserEvents(user.username);
       for (const event of events) {
         if (event.type !== 'PushEvent' || !event.payload.commits?.length) continue;
 
@@ -167,6 +170,89 @@ export class SyncService {
         }
       }
 
+      const commitContributions = await gql.listCommitContributions(user.username);
+      for (const contribution of commitContributions) {
+        try {
+          const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
+          await this.userRepos.linkRepoOnly(userId, repo.id);
+
+          await this.contributions.upsert({
+            userId,
+            repositoryId: repo.id,
+            githubId: contributionGithubId(
+              contribution.repository.databaseId,
+              contribution.occurredAt,
+            ),
+            type: 'commit',
+            title:
+              contribution.commitCount === 1
+                ? 'Commit'
+                : `${contribution.commitCount} commits`,
+            state: null,
+            isMerged: null,
+            occurredAt: new Date(contribution.occurredAt),
+            htmlUrl: `https://github.com${contribution.resourcePath}`,
+            commitCount: contribution.commitCount,
+          });
+        } catch {
+          reposFailed++;
+        }
+      }
+
+      let issueCount = 0;
+
+      const assigned = await this.syncGraphqlIssues(
+        userId,
+        await gql.listAssignedIssues(user.username),
+        'assigned',
+        jobId,
+        reposSynced + prCount,
+      );
+      issueCount += assigned.count;
+      reposFailed += assigned.failed;
+
+      const authored = await this.syncSearchIssues(
+        userId,
+        api,
+        await api.searchIssuesAuthored(user.username),
+        'authored',
+        jobId,
+        reposSynced + prCount + issueCount,
+      );
+      issueCount += authored.count;
+      reposFailed += authored.failed;
+
+      const commentedIssues = await api.searchIssuesCommented(user.username);
+      for (const issue of commentedIssues) {
+        try {
+          const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
+          let repo = await this.repos.findByFullName(fullName);
+          if (!repo) {
+            repo = await this.repos.upsert(await api.fetchRepo(fullName));
+          }
+          await this.userRepos.linkRepoOnly(userId, repo.id);
+
+          await this.contributions.upsert({
+            userId,
+            repositoryId: repo.id,
+            githubId: issue.id,
+            type: 'issue',
+            title: issue.title,
+            state: issue.state,
+            isMerged: null,
+            occurredAt: new Date(issue.updated_at),
+            htmlUrl: issue.html_url,
+            roles: ['commented'],
+          });
+          issueCount++;
+          if (issueCount % 25 === 0) {
+            await this.jobs.updateProgress(jobId, reposSynced + prCount + issueCount, reposFailed);
+          }
+        } catch {
+          reposFailed++;
+        }
+      }
+
       await this.userRepos.rebuildFromContributions(userId);
       await this.journey.refreshMilestones(userId);
 
@@ -183,5 +269,88 @@ export class SyncService {
         resetAt,
       );
     }
+  }
+
+  private async syncGraphqlIssues(
+    userId: string,
+    issues: GraphQLIssue[],
+    role: 'assigned' | 'authored',
+    jobId: string,
+    progressBase: number,
+  ): Promise<{ count: number; failed: number }> {
+    let count = 0;
+    let failed = 0;
+
+    for (const issue of issues) {
+      try {
+        const repo = await this.repos.upsert(graphRepoToGitHubRepo(issue.repository));
+        await this.userRepos.linkRepoOnly(userId, repo.id);
+
+        await this.contributions.upsert({
+          userId,
+          repositoryId: repo.id,
+          githubId: issue.databaseId,
+          type: 'issue',
+          title: issue.title,
+          state: issueState(issue),
+          isMerged: null,
+          occurredAt: new Date(issue.createdAt),
+          htmlUrl: issue.url,
+          roles: [role],
+        });
+        count++;
+        if (count % 25 === 0) {
+          await this.jobs.updateProgress(jobId, progressBase + count, failed);
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    return { count, failed };
+  }
+
+  private async syncSearchIssues(
+    userId: string,
+    api: GitHubApi,
+    issues: GitHubSearchIssue[],
+    role: 'authored',
+    jobId: string,
+    progressBase: number,
+  ): Promise<{ count: number; failed: number }> {
+    let count = 0;
+    let failed = 0;
+
+    for (const issue of issues) {
+      try {
+        const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
+        let repo = await this.repos.findByFullName(fullName);
+        if (!repo) {
+          repo = await this.repos.upsert(await api.fetchRepo(fullName));
+        }
+        await this.userRepos.linkRepoOnly(userId, repo.id);
+
+        await this.contributions.upsert({
+          userId,
+          repositoryId: repo.id,
+          githubId: issue.id,
+          type: 'issue',
+          title: issue.title,
+          state: issue.state,
+          isMerged: null,
+          occurredAt: new Date(issue.created_at),
+          htmlUrl: issue.html_url,
+          roles: [role],
+        });
+        count++;
+        if (count % 25 === 0) {
+          await this.jobs.updateProgress(jobId, progressBase + count, failed);
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    return { count, failed };
   }
 }

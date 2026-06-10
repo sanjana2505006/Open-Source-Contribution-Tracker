@@ -20,4 +20,12 @@ export type {
   PullRequestStatusFilter,
   PullRequestCounts,
 } from './types/contributions.js';
+export type {
+  IssueItem,
+  IssueList,
+  IssueRole,
+  IssueRoleFilter,
+  IssueStatusFilter,
+  IssueCounts,
+} from './types/issues.js';
 export type { MilestoneType, MilestoneItem, JourneyBundle } from './types/journey.js';

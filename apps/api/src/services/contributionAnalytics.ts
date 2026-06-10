@@ -126,11 +126,13 @@ export function buildStats(
   repoCount: number,
   prs: GraphQLPullRequest[],
   commitCount: number,
+  issueCount = 0,
 ): StatsSummary {
   return {
     repositories: repoCount,
     pullRequests: prs.length,
     commits: commitCount,
+    issues: issueCount,
   };
 }
 

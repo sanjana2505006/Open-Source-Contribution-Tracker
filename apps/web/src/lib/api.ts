@@ -1,6 +1,9 @@
 import type {
   AnalyticsBundle,
   HealthResponse,
+  IssueList,
+  IssueRoleFilter,
+  IssueStatusFilter,
   JourneyBundle,
   PullRequestList,
   PullRequestStatusFilter,
@@ -114,6 +117,23 @@ export function fetchPullRequests(opts: FetchPullRequestsOpts = {}): Promise<Pul
   if (opts.status && opts.status !== 'all') params.set('status', opts.status);
   if (opts.sort) params.set('sort', opts.sort);
   return apiFetch<PullRequestList>(`/api/v1/pull-requests?${params}`);
+}
+
+export type FetchIssuesOpts = {
+  repo?: string;
+  role?: IssueRoleFilter;
+  status?: IssueStatusFilter;
+  sort?: 'newest' | 'oldest';
+  limit?: number;
+};
+
+export function fetchIssues(opts: FetchIssuesOpts = {}): Promise<IssueList> {
+  const params = new URLSearchParams({ limit: String(opts.limit ?? 500) });
+  if (opts.repo) params.set('repo', opts.repo);
+  if (opts.role && opts.role !== 'all') params.set('role', opts.role);
+  if (opts.status && opts.status !== 'all') params.set('status', opts.status);
+  if (opts.sort) params.set('sort', opts.sort);
+  return apiFetch<IssueList>(`/api/v1/issues?${params}`);
 }
 
 export function fetchJourney(): Promise<JourneyBundle> {

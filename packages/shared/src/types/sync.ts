@@ -19,6 +19,7 @@ export type StatsSummary = {
   repositories: number;
   pullRequests: number;
   commits: number;
+  issues: number;
 };
 
 export type RepositorySummary = {

@@ -69,7 +69,14 @@ export class UserRepositoryLinkRepository {
     const repoCount = await this.countRepos(userId);
 
     const counts = await this.db.query<{ type: string; count: string }>(
-      `SELECT type, COUNT(*)::text AS count
+      `SELECT type,
+              CASE
+                WHEN type = 'commit' THEN COALESCE(
+                  SUM(COALESCE((raw_metadata->>'commitCount')::int, 1)),
+                  0
+                )::text
+                ELSE COUNT(*)::text
+              END AS count
        FROM contributions WHERE user_id = $1
        GROUP BY type`,
       [userId],
@@ -83,6 +90,7 @@ export class UserRepositoryLinkRepository {
       repositories: repoCount,
       pullRequests: byType.pull_request ?? 0,
       commits: byType.commit ?? 0,
+      issues: byType.issue ?? 0,
     };
   }
 }

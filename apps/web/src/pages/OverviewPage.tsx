@@ -29,6 +29,12 @@ function StatIcons() {
         <path d="M11.93 8.5a4.002 4.002 0 01-7.86 0H.75a.75.75 0 010-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 010 1.5h-3.32zM8 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
       </svg>
     ),
+    issue: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+        <path d="M8 0a8 8 0 100 16A8 8 0 008 0zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z" />
+      </svg>
+    ),
   };
 }
 
@@ -148,9 +154,10 @@ export function OverviewPage() {
 
       {user && (
       <main className="page-main">
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {loading || authLoading ? (
             <>
+              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -165,18 +172,24 @@ export function OverviewPage() {
                 delay="animate-fade-up-delay-1"
               />
               <StatCard
+                label="Issues"
+                value={stats?.issues ?? '—'}
+                accent="var(--color-warn)"
+                icon={icons.issue}
+                delay="animate-fade-up-delay-2"
+              />
+              <StatCard
                 label="Repositories"
                 value={stats?.repositories ?? '—'}
                 accent="var(--color-repo)"
                 icon={icons.repo}
-                delay="animate-fade-up-delay-2"
+                delay="animate-fade-up-delay-3"
               />
               <StatCard
                 label="Commits"
                 value={stats?.commits ?? '—'}
                 accent="var(--color-commit)"
                 icon={icons.commit}
-                delay="animate-fade-up-delay-3"
               />
             </>
           )}

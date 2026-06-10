@@ -23,7 +23,10 @@ export class AnalyticsRepository {
     }>(
       `SELECT DATE_TRUNC('month', occurred_at) AS period,
               COUNT(*) FILTER (WHERE type = 'pull_request')::text AS pull_requests,
-              COUNT(*) FILTER (WHERE type = 'commit')::text AS commits,
+              COALESCE(
+                SUM(COALESCE((raw_metadata->>'commitCount')::int, 1)) FILTER (WHERE type = 'commit'),
+                0
+              )::text AS commits,
               COUNT(*)::text AS total
        FROM contributions
        WHERE user_id = $1

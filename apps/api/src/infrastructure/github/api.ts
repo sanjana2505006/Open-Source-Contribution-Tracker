@@ -141,9 +141,46 @@ export class GitHubApi {
     return items;
   }
 
+  async searchIssues(query: string): Promise<GitHubSearchIssue[]> {
+    const items: GitHubSearchIssue[] = [];
+
+    for (let page = 1; page <= 10; page++) {
+      const data = await this.request<{
+        items: GitHubSearchIssue[];
+        incomplete_results: boolean;
+      }>(
+        `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100&page=${page}`,
+      );
+
+      for (const item of data.items) {
+        if (item.pull_request) continue;
+        items.push(item);
+      }
+
+      if (data.items.length < 100) break;
+    }
+
+    return items;
+  }
+
+  async searchIssuesCommented(username: string): Promise<GitHubSearchIssue[]> {
+    return this.searchIssues(`commenter:${username} type:issue`);
+  }
+
   async listPublicEvents(username: string): Promise<GitHubEvent[]> {
-    return this.request<GitHubEvent[]>(
-      `/users/${encodeURIComponent(username)}/events/public?per_page=100`,
+    return this.listUserEvents(username);
+  }
+
+  /** Authenticated feed — includes private repo activity and paginates beyond the first 100 events. */
+  async listUserEvents(username: string, maxPages = 10): Promise<GitHubEvent[]> {
+    return this.requestAllPages<GitHubEvent>(
+      (page) =>
+        `/users/${encodeURIComponent(username)}/events?per_page=100&page=${page}`,
+      maxPages,
     );
+  }
+
+  async searchIssuesAuthored(username: string): Promise<GitHubSearchIssue[]> {
+    return this.searchIssues(`author:${username} type:issue`);
   }
 }

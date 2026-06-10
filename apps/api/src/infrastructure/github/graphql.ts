@@ -29,6 +29,34 @@ export type GraphQLPullRequest = {
   repository: GraphQLRepoNode;
 };
 
+export type GraphQLIssue = {
+  databaseId: number;
+  title: string;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+  state: 'OPEN' | 'CLOSED';
+  repository: GraphQLRepoNode;
+};
+
+export type GraphQLCommitContribution = {
+  commitCount: number;
+  occurredAt: string;
+  resourcePath: string;
+  repository: GraphQLRepoNode;
+};
+
+function contributionGithubId(repositoryId: number, occurredAt: string): number {
+  const hex = `${repositoryId}-${occurredAt}`.replace(/[^a-f0-9]/gi, '').slice(0, 15);
+  return Number.parseInt(hex.padEnd(15, '0'), 16);
+}
+
+export function issueState(issue: GraphQLIssue): 'open' | 'closed' {
+  return issue.state === 'OPEN' ? 'open' : 'closed';
+}
+
+export { contributionGithubId };
+
 export function graphRepoToGitHubRepo(node: GraphQLRepoNode): GitHubRepo {
   const slash = node.nameWithOwner.indexOf('/');
   const ownerLogin = node.nameWithOwner.slice(0, slash);
@@ -150,6 +178,168 @@ export class GitHubGraphQL {
 
       if (!data.user.pullRequests.pageInfo.hasNextPage) break;
       cursor = data.user.pullRequests.pageInfo.endCursor;
+    }
+
+    return items;
+  }
+
+  private async listIssuesFromConnection(
+    login: string,
+    connection: 'assignedIssues' | 'issues',
+  ): Promise<GraphQLIssue[]> {
+    const items: GraphQLIssue[] = [];
+    let cursor: string | null = null;
+
+    const query = `
+      query($login: String!, $cursor: String) {
+        user(login: $login) {
+          ${connection}(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              databaseId
+              title
+              url
+              createdAt
+              updatedAt
+              state
+              repository {
+                databaseId
+                nameWithOwner
+                description
+                primaryLanguage { name }
+                stargazerCount
+                isFork
+                isPrivate
+                url
+                defaultBranchRef { name }
+                pushedAt
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    for (;;) {
+      type IssuePage = {
+        user: {
+          [K in typeof connection]: {
+            pageInfo: PageInfo;
+            nodes: GraphQLIssue[];
+          };
+        } | null;
+      };
+
+      const data: IssuePage = await this.query<IssuePage>(query, { login, cursor });
+
+      if (!data.user) {
+        throw new Error(`GitHub user "${login}" not found`);
+      }
+
+      items.push(...data.user[connection].nodes);
+
+      if (!data.user[connection].pageInfo.hasNextPage) break;
+      cursor = data.user[connection].pageInfo.endCursor;
+    }
+
+    return items;
+  }
+
+  async listAssignedIssues(login: string): Promise<GraphQLIssue[]> {
+    return this.listIssuesFromConnection(login, 'assignedIssues');
+  }
+
+  async listAuthoredIssues(login: string): Promise<GraphQLIssue[]> {
+    return this.listIssuesFromConnection(login, 'issues');
+  }
+
+  async listCommitContributions(login: string): Promise<GraphQLCommitContribution[]> {
+    const items: GraphQLCommitContribution[] = [];
+    const from = '2008-01-01T00:00:00Z';
+    const to = new Date().toISOString();
+    let repoCursor: string | null = null;
+
+    const query = `
+      query($login: String!, $from: DateTime!, $to: DateTime!, $repoCursor: String) {
+        user(login: $login) {
+          contributionsCollection(from: $from, to: $to) {
+            commitContributionsByRepository(maxRepositories: 100, after: $repoCursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                repository {
+                  databaseId
+                  nameWithOwner
+                  description
+                  primaryLanguage { name }
+                  stargazerCount
+                  isFork
+                  isPrivate
+                  url
+                  defaultBranchRef { name }
+                  pushedAt
+                }
+                contributions(first: 100) {
+                  nodes {
+                    commitCount
+                    occurredAt
+                    resourcePath
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    for (;;) {
+      type RepoPage = {
+        user: {
+          contributionsCollection: {
+            commitContributionsByRepository: {
+              pageInfo: PageInfo;
+              nodes: Array<{
+                repository: GraphQLRepoNode;
+                contributions: {
+                  nodes: Array<{
+                    commitCount: number;
+                    occurredAt: string;
+                    resourcePath: string;
+                  }>;
+                };
+              }>;
+            };
+          };
+        } | null;
+      };
+
+      const data: RepoPage = await this.query<RepoPage>(query, {
+        login,
+        from,
+        to,
+        repoCursor,
+      });
+
+      if (!data.user) {
+        throw new Error(`GitHub user "${login}" not found`);
+      }
+
+      const repoPage = data.user.contributionsCollection.commitContributionsByRepository;
+
+      for (const block of repoPage.nodes) {
+        for (const node of block.contributions.nodes) {
+          if (node.commitCount < 1) continue;
+          items.push({
+            commitCount: node.commitCount,
+            occurredAt: node.occurredAt,
+            resourcePath: node.resourcePath,
+            repository: block.repository,
+          });
+        }
+      }
+
+      if (!repoPage.pageInfo.hasNextPage) break;
+      repoCursor = repoPage.pageInfo.endCursor;
     }
 
     return items;
