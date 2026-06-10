@@ -28,7 +28,7 @@ export function PullRequestStatusTabs({ status, counts, onChange }: Props) {
             className={['segmented-item', active ? 'segmented-item-active' : ''].join(' ')}
           >
             {tab.label}
-            <span className="font-mono text-[10px] tabular-nums opacity-60">{counts[tab.id]}</span>
+            <span className="tabular-nums text-[10px] font-semibold opacity-60">{counts[tab.id]}</span>
           </button>
         );
       })}

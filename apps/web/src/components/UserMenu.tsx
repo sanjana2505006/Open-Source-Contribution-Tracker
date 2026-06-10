@@ -40,13 +40,13 @@ export function UserMenu() {
             className="h-9 w-9 rounded-full ring-2 ring-[var(--color-accent)]/20"
           />
         ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-sm">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-panel)] text-sm font-semibold">
             {user.username[0]?.toUpperCase()}
           </span>
         )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{user.displayName ?? user.username}</p>
-          <p className="truncate font-mono text-[11px] text-[var(--color-muted)]">
+          <p className="truncate text-[11px] font-medium text-[var(--color-muted)]">
             @{user.username}
           </p>
         </div>

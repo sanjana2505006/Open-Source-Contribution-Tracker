@@ -23,11 +23,9 @@ export function StatCard({ label, value, accent, icon, delay = '' }: StatCardPro
       />
       <div className="relative flex items-start justify-between gap-3 pl-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
-            {label}
-          </p>
+          <p className="eyebrow text-[10px]">{label}</p>
           <p
-            className="mt-2 font-mono text-3xl font-semibold tabular-nums tracking-tight"
+            className="tabular-nums mt-2 text-3xl font-semibold tracking-tight"
             style={{ color: accent }}
           >
             {value}

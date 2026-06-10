@@ -1,7 +1,8 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 import type { LanguageStat } from '@osct/shared';
-import { chartColors } from './colors';
+import { useTheme } from '../app/ThemeProvider';
+import { getChartColors } from './colors';
 
 type Props = {
   data: LanguageStat[];
@@ -10,6 +11,8 @@ type Props = {
 export function LanguageChart({ data }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -44,7 +47,7 @@ export function LanguageChart({ data }: Props) {
       .attr('y', (d) => y(d.language)!)
       .attr('width', (d) => x(d.count))
       .attr('height', y.bandwidth())
-      .attr('fill', chartColors.accent)
+      .attr('fill', colors.accent)
       .attr('opacity', 0.85);
 
     g.selectAll('.label')
@@ -54,10 +57,10 @@ export function LanguageChart({ data }: Props) {
       .attr('y', (d) => y(d.language)! + y.bandwidth() / 2)
       .attr('dy', '0.35em')
       .attr('text-anchor', 'end')
-      .attr('fill', chartColors.text)
+      .attr('fill', colors.text)
       .attr('font-size', 11)
       .text((d) => d.language);
-  }, [data]);
+  }, [data, theme]);
 
   if (data.length === 0) {
     return (

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { UserMenu } from '../components/UserMenu';
 
 const links = [
@@ -56,9 +57,7 @@ export function Layout() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 p-2.5">
-          <p className="px-3 pb-1 pt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
-            Navigate
-          </p>
+          <p className="eyebrow px-3 pb-1 pt-2">Navigate</p>
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -83,6 +82,10 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-auto border-t border-[var(--color-border)] py-2">
+          <ThemeToggle />
+        </div>
 
         <UserMenu />
       </aside>

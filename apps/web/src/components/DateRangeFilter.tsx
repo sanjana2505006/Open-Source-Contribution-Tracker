@@ -39,7 +39,7 @@ export function DateRangeFilter({ value, onChange }: Props) {
           type="button"
           onClick={() => onChange(opt.value)}
           className={[
-            'rounded px-2.5 py-1 font-mono text-[11px] transition-colors',
+            'rounded px-2.5 py-1 text-[11px] font-medium transition-colors',
             value === opt.value
               ? 'bg-[var(--color-accent)] text-white'
               : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',

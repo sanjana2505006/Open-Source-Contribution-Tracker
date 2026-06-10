@@ -71,18 +71,18 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
               style={{ width: `${Math.min(95, 15 + status.reposSynced * 2)}%` }}
             />
           </div>
-          <p className="mt-1.5 text-right font-mono text-[10px] text-[var(--color-muted)]">
+          <p className="mt-1.5 text-right text-[10px] font-medium text-[var(--color-muted)]">
             {status.reposSynced > 0 ? `${status.reposSynced} items processed` : 'fetching from GitHub…'}
           </p>
         </div>
       )}
 
       {!running && status?.status === 'completed' && (
-        <p className="font-mono text-[10px] text-[var(--color-ok)]">last sync ok</p>
+        <p className="text-[10px] font-medium text-[var(--color-ok)]">last sync ok</p>
       )}
 
       {!running && status?.status === 'failed' && status.errorMessage && (
-        <p className="max-w-[240px] text-right font-mono text-[10px] leading-snug text-[var(--color-bad)]">
+        <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-bad)]">
           {status.errorMessage}
         </p>
       )}

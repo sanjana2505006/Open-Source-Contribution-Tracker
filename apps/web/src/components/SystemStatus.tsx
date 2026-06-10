@@ -2,7 +2,7 @@ import type { HealthResponse } from '@osct/shared';
 
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 font-mono text-[10px] text-[var(--color-muted)]">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 text-[10px] font-semibold text-[var(--color-muted)]">
       <span
         className={`inline-block h-1.5 w-1.5 rounded-full ${ok ? '' : 'animate-pulse-dot'}`}
         style={{ background: ok ? 'var(--color-ok)' : 'var(--color-bad)' }}

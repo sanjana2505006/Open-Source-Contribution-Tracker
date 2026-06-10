@@ -55,7 +55,7 @@ export function PullRequestTable({
               {showRepository && (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(pr.repositoryFullName)}`}
-                  className="shrink-0 rounded-md bg-[var(--color-surface)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-accent)] hover:ring-[var(--color-accent)]/30"
+                  className="shrink-0 rounded-md bg-[var(--color-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-accent)] hover:ring-[var(--color-accent)]/30"
                 >
                   {pr.repositoryFullName}
                 </Link>
@@ -71,7 +71,7 @@ export function PullRequestTable({
               {stale && <StatusBadge status="stale" label={`${openDays}d open`} />}
               <time
                 dateTime={pr.occurredAt}
-                className="shrink-0 font-mono text-[11px] tabular-nums text-[var(--color-muted)]"
+                className="tabular-nums shrink-0 text-[11px] font-medium text-[var(--color-muted)]"
               >
                 {new Date(pr.occurredAt).toLocaleDateString()}
               </time>

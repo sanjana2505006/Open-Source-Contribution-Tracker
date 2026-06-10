@@ -1,26 +1,29 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 import type { PullRequestStats } from '@osct/shared';
-import { chartColors } from './colors';
+import { useTheme } from '../app/ThemeProvider';
+import { getChartColors } from './colors';
 
 type Props = {
   data: PullRequestStats;
 };
 
-const rows = [
-  { key: 'merged', label: 'Merged', color: chartColors.merged },
-  { key: 'open', label: 'Open', color: chartColors.open },
-  { key: 'closed', label: 'Closed', color: chartColors.closed },
-] as const;
-
 export function PullRequestChart({ data }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
 
   useEffect(() => {
     const wrap = wrapRef.current;
     const svgEl = svgRef.current;
     if (!wrap || !svgEl) return;
+
+    const rows = [
+      { key: 'merged', label: 'Merged', color: colors.merged },
+      { key: 'open', label: 'Open', color: colors.open },
+      { key: 'closed', label: 'Closed', color: colors.closed },
+    ] as const;
 
     const items = rows.map((r) => ({
       label: r.label,
@@ -65,7 +68,7 @@ export function PullRequestChart({ data }: Props) {
       .attr('y', (d) => y(d.label)! + y.bandwidth() / 2)
       .attr('dy', '0.35em')
       .attr('text-anchor', 'end')
-      .attr('fill', chartColors.text)
+      .attr('fill', colors.text)
       .attr('font-size', 11)
       .text((d) => d.label);
 
@@ -75,10 +78,10 @@ export function PullRequestChart({ data }: Props) {
       .attr('x', (d) => x(d.value) + 6)
       .attr('y', (d) => y(d.label)! + y.bandwidth() / 2)
       .attr('dy', '0.35em')
-      .attr('fill', chartColors.text)
+      .attr('fill', colors.text)
       .attr('font-size', 11)
       .text((d) => d.value);
-  }, [data]);
+  }, [data, theme]);
 
   if (data.total === 0) {
     return (

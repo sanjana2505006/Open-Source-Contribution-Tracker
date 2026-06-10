@@ -17,7 +17,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
               {linkToPrs ? (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
-                  className="truncate font-mono text-sm transition-colors group-hover:text-[var(--color-accent)]"
+                  className="truncate text-sm font-medium transition-colors group-hover:text-[var(--color-accent)]"
                 >
                   {repo.fullName}
                 </Link>
@@ -26,7 +26,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
                   href={repo.htmlUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="truncate font-mono text-sm transition-colors group-hover:text-[var(--color-accent)]"
+                  className="truncate text-sm font-medium transition-colors group-hover:text-[var(--color-accent)]"
                 >
                   {repo.fullName}
                 </a>
@@ -45,7 +45,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
               {linkToPrs && (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
-                  className="btn btn-ghost px-2 py-1 font-mono text-[10px]"
+                  className="btn btn-ghost px-2 py-1 text-[11px] font-medium"
                 >
                   PRs →
                 </Link>
@@ -54,7 +54,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
                 href={repo.htmlUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn btn-ghost px-2 py-1 font-mono text-[10px]"
+                className="btn btn-ghost px-2 py-1 text-[11px] font-medium"
                 title="Open on GitHub"
               >
                 gh ↗

@@ -21,9 +21,9 @@ export function Panel({
     <div className={`panel ${className}`}>
       <div className="panel-header">
         <div>
-          <h3 className="text-sm font-medium">{title}</h3>
+          <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
           {subtitle && (
-            <p className="mt-0.5 text-xs text-[var(--color-muted)]">{subtitle}</p>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">{subtitle}</p>
           )}
         </div>
         {action}

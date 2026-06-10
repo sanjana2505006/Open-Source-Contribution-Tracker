@@ -1,7 +1,8 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 import type { ContributionTimelinePoint } from '@osct/shared';
-import { chartColors, formatMonth } from './colors';
+import { useTheme } from '../app/ThemeProvider';
+import { formatMonth, getChartColors } from './colors';
 
 type Props = {
   data: ContributionTimelinePoint[];
@@ -10,6 +11,8 @@ type Props = {
 export function ActivityChart({ data }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -51,13 +54,13 @@ export function ActivityChart({ data }: Props) {
           )
           .tickFormat((d) => formatMonth(String(d))),
       )
-      .call((sel) => sel.selectAll('text').attr('fill', chartColors.text))
-      .call((sel) => sel.selectAll('line, path').attr('stroke', chartColors.grid));
+      .call((sel) => sel.selectAll('text').attr('fill', colors.text))
+      .call((sel) => sel.selectAll('line, path').attr('stroke', colors.grid));
 
     g.append('g')
       .call(d3.axisLeft(y).ticks(4).tickFormat(d3.format('d')))
-      .call((sel) => sel.selectAll('text').attr('fill', chartColors.text))
-      .call((sel) => sel.selectAll('line, path').attr('stroke', chartColors.grid));
+      .call((sel) => sel.selectAll('text').attr('fill', colors.text))
+      .call((sel) => sel.selectAll('line, path').attr('stroke', colors.grid));
 
     g.selectAll('.bar-pr')
       .data(data)
@@ -67,7 +70,7 @@ export function ActivityChart({ data }: Props) {
       .attr('width', x.bandwidth() / 2 - 1)
       .attr('y', (d) => y(d.pullRequests))
       .attr('height', (d) => innerH - y(d.pullRequests))
-      .attr('fill', chartColors.pr);
+      .attr('fill', colors.pr);
 
     g.selectAll('.bar-commit')
       .data(data)
@@ -77,8 +80,8 @@ export function ActivityChart({ data }: Props) {
       .attr('width', x.bandwidth() / 2 - 1)
       .attr('y', (d) => y(d.commits))
       .attr('height', (d) => innerH - y(d.commits))
-      .attr('fill', chartColors.commit);
-  }, [data]);
+      .attr('fill', colors.commit);
+  }, [data, theme]);
 
   if (data.length === 0) {
     return (
@@ -91,13 +94,13 @@ export function ActivityChart({ data }: Props) {
   return (
     <div ref={wrapRef} className="w-full">
       <svg ref={svgRef} role="img" aria-label="Monthly contribution activity" />
-      <div className="mt-2 flex gap-4 font-mono text-[11px] text-[var(--color-muted)]">
+      <div className="mt-2 flex gap-4 text-[11px] font-medium text-[var(--color-muted)]">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: chartColors.pr }} />
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: colors.pr }} />
           PRs
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: chartColors.commit }} />
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ background: colors.commit }} />
           commits
         </span>
       </div>

@@ -101,7 +101,7 @@ export function OverviewPage() {
         }
         footnote={
           user
-            ? 'Move your mouse — the crowd shifts like a living network of contributors.'
+            ? 'Move your mouse — the OSS squad shifts with you ✨'
             : 'Sign in once — your PRs, repos, and journey appear here.'
         }
         primaryAction={

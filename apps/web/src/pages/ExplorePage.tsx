@@ -149,12 +149,12 @@ export function ExplorePage() {
                       {w.avatarUrl ? (
                         <img src={w.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
                       ) : (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-surface)] font-mono text-xs">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-surface)] text-xs font-semibold">
                           {w.username[0]?.toUpperCase()}
                         </span>
                       )}
-                      <span className="min-w-0 flex-1 truncate font-mono">@{w.username}</span>
-                      <span className="font-mono text-[10px] text-[var(--color-muted)]">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">@{w.username}</span>
+                      <span className="text-[10px] font-medium text-[var(--color-muted)]">
                         {w.stats.pullRequests} pr
                       </span>
                     </button>
@@ -184,11 +184,11 @@ export function ExplorePage() {
                     href={profile.profileUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-sm text-[var(--color-accent)] hover:underline"
+                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
                   >
                     @{profile.username}
                   </a>
-                  <p className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                  <p className="mt-1 text-[10px] font-medium text-[var(--color-muted)]">
                     synced {new Date(profile.syncedAt).toLocaleString()}
                   </p>
                 </div>

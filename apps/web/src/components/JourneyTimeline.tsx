@@ -72,14 +72,14 @@ export function JourneyTimeline({ milestones, loading }: Props) {
                   </p>
                 )}
                 {milestone.repositoryFullName && (
-                  <p className="mt-2 font-mono text-[10px] text-[var(--color-muted)]">
+                  <p className="mt-2 text-[11px] font-medium text-[var(--color-muted)]">
                     {milestone.repositoryFullName}
                   </p>
                 )}
               </div>
               <time
                 dateTime={milestone.occurredAt}
-                className="shrink-0 font-mono text-[11px] tabular-nums text-[var(--color-muted)]"
+                className="tabular-nums shrink-0 text-[11px] font-medium text-[var(--color-muted)]"
               >
                 {new Date(milestone.occurredAt).toLocaleDateString(undefined, {
                   year: 'numeric',
@@ -100,7 +100,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
               />
             )}
             <span
-              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-mono text-[9px] font-medium uppercase ${typeAccent(milestone.type)}`}
+              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-semibold uppercase tracking-wide ${typeAccent(milestone.type)}`}
             >
               {typeLabel(milestone.type)}
             </span>

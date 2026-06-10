@@ -13,12 +13,12 @@ type LayerConfig = {
 };
 
 const LAYERS: LayerConfig[] = [
-  { id: 'back', depth: 0.25, scale: 0.5, opacity: 0.28, blur: 3, lift: 28, count: 16, delay: 0.1 },
-  { id: 'mid', depth: 0.55, scale: 0.72, opacity: 0.55, blur: 1, lift: 14, count: 13, delay: 0.25 },
-  { id: 'front', depth: 1, scale: 1, opacity: 1, blur: 0, lift: 0, count: 11, delay: 0.42 },
+  { id: 'back', depth: 0.3, scale: 0.55, opacity: 0.45, blur: 2, lift: 24, count: 14, delay: 0.08 },
+  { id: 'mid', depth: 0.6, scale: 0.78, opacity: 0.78, blur: 0.5, lift: 12, count: 12, delay: 0.2 },
+  { id: 'front', depth: 1, scale: 1, opacity: 1, blur: 0, lift: 0, count: 10, delay: 0.35 },
 ];
 
-type FigureProps = { className?: string };
+type FigureProps = { className?: string; style?: React.CSSProperties };
 
 function CrowdLayer({
   layer,
@@ -34,8 +34,8 @@ function CrowdLayer({
     figures.push(CROWD_FIGURES[i % CROWD_FIGURES.length]!);
   }
 
-  const shiftX = offset.x * layer.depth * 48;
-  const shiftY = offset.y * layer.depth * 14;
+  const shiftX = offset.x * layer.depth * 55;
+  const shiftY = offset.y * layer.depth * 16;
 
   return (
     <div
@@ -43,14 +43,18 @@ function CrowdLayer({
       style={{
         opacity: layer.opacity,
         filter: layer.blur ? `blur(${layer.blur}px)` : undefined,
-        transform: `translate3d(${shiftX}px, ${ready ? layer.lift + shiftY : layer.lift + 90}px, 0) scale(${layer.scale})`,
+        transform: `translate3d(${shiftX}px, ${ready ? layer.lift + shiftY : layer.lift + 100}px, 0) scale(${layer.scale})`,
         transitionDelay: `${layer.delay}s`,
       }}
       aria-hidden
     >
       <div className="hero-crowd__row">
         {figures.map((Figure, i) => (
-          <Figure key={`${layer.id}-${i}`} className="hero-crowd__figure" />
+          <Figure
+            key={`${layer.id}-${i}`}
+            className="hero-crowd__figure"
+            style={{ animationDelay: `${i * 0.12 + layer.delay}s` }}
+          />
         ))}
       </div>
     </div>
@@ -84,6 +88,7 @@ export function ContributorCrowd() {
 
   return (
     <div className="hero-crowd" onMouseMove={onMove} onMouseLeave={onLeave} aria-hidden>
+      <div className="hero-crowd__glow" />
       <div className="hero-crowd__fade" />
       {LAYERS.map((layer) => (
         <CrowdLayer key={layer.id} layer={layer} offset={offset} ready={ready} />

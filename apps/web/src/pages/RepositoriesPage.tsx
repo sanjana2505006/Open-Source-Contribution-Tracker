@@ -151,7 +151,7 @@ export function RepositoriesPage() {
               className={['list-picker-item mb-2', inboxMode ? 'list-picker-item-active' : ''].join(' ')}
             >
               <span className="font-medium">All PRs</span>
-              <span className="font-mono text-[10px] tabular-nums opacity-70">{counts.all}</span>
+              <span className="tabular-nums text-[10px] font-semibold opacity-70">{counts.all}</span>
             </button>
             <input
               type="text"
@@ -174,7 +174,7 @@ export function RepositoriesPage() {
                         selectedRepo === repo.fullName ? 'list-picker-item-active' : '',
                       ].join(' ')}
                     >
-                      <span className="truncate font-mono text-xs">{repo.fullName}</span>
+                      <span className="truncate text-xs font-medium">{repo.fullName}</span>
                     </button>
                   </li>
                 ))}
