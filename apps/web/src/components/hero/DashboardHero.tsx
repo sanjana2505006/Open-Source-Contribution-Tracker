@@ -10,6 +10,9 @@ type Props = {
   primaryAction?: ReactNode;
   secondaryAction?: ReactNode;
   meta?: ReactNode;
+  fullScreen?: boolean;
+  solo?: boolean;
+  children?: ReactNode;
 };
 
 export function DashboardHero({
@@ -20,9 +23,20 @@ export function DashboardHero({
   primaryAction,
   secondaryAction,
   meta,
+  fullScreen = false,
+  solo = false,
+  children,
 }: Props) {
   return (
-    <section className="hero-mirofish">
+    <section
+      className={[
+        'hero-mirofish',
+        fullScreen && 'hero-mirofish--fullscreen',
+        solo && 'hero-mirofish--solo',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div className="hero-mirofish__ambient" aria-hidden>
         <SwarmCanvas />
       </div>
@@ -54,6 +68,8 @@ export function DashboardHero({
         )}
 
         {footnote && <p className="hero-mirofish__footnote">{footnote}</p>}
+
+        {children}
 
         {meta && <div className="hero-mirofish__meta">{meta}</div>}
       </div>

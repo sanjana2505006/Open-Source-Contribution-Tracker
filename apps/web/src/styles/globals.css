@@ -336,6 +336,10 @@ button:disabled {
   padding: 1.5rem;
 }
 
+.layout-full .page-header {
+  padding-top: calc(3.75rem + 1.25rem);
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -622,6 +626,205 @@ button:disabled {
 }
 
 /* —— Mirofish-style landing hero —— */
+
+.hero-mirofish--fullscreen {
+  min-height: 100vh;
+}
+
+.hero-mirofish--solo {
+  flex: 1;
+  min-height: 100vh;
+  border-bottom: none;
+}
+
+.hero-mirofish--fullscreen .hero-mirofish__center {
+  padding-top: 5rem;
+  padding-bottom: 11rem;
+}
+
+.hero-mirofish__features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+.hero-mirofish__features li {
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-panel) 70%, transparent);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  backdrop-filter: blur(8px);
+}
+
+/* —— Full-screen landing (logged out) —— */
+
+/* —— Full-width layout (no sidebar) —— */
+
+.layout-full {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-header__nav {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+}
+
+.app-header__link {
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.app-header__link:hover {
+  color: var(--color-text);
+  background: var(--color-panel-hover);
+}
+
+.app-header__link--active {
+  color: var(--color-text);
+  background: var(--nav-active-bg);
+  box-shadow: inset 0 0 0 1px var(--nav-active-ring);
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.app-header__theme .theme-switch-wrap {
+  gap: 0;
+}
+
+.app-header__theme .theme-switch__label {
+  display: none;
+}
+
+.app-header__theme .theme-switch {
+  width: 5.5rem;
+}
+
+.app-header__signin {
+  padding: 0.45rem 1rem;
+  font-size: 0.8125rem;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-header__avatar {
+  height: 2rem;
+  width: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.app-header__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-panel);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.app-header__username {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.app-header__signout {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.app-header__signout:hover {
+  color: var(--color-text);
+}
+
+.layout-landing {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.landing-header {
+  display: none;
+}
+
+.landing-oauth-error {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  z-index: 30;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-bad) 40%, transparent);
+  background: color-mix(in srgb, var(--color-bad) 12%, var(--color-panel));
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-bad);
+  box-shadow: var(--panel-shadow);
+}
 
 .hero-mirofish {
   position: relative;

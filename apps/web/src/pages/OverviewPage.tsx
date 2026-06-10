@@ -10,7 +10,7 @@ import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
 import { SyncControls } from '../components/SyncControls';
 import { SystemStatus } from '../components/SystemStatus';
-import { fetchHealth, fetchRepositories, fetchStats, loginWithGitHub } from '../lib/api';
+import { fetchHealth, fetchRepositories, fetchStats } from '../lib/api';
 
 function StatIcons() {
   return {
@@ -90,6 +90,8 @@ export function OverviewPage() {
   return (
     <>
       <DashboardHero
+        fullScreen
+        solo={!user}
         title={user ? 'Welcome' : 'Track'}
         highlight={user ? `@${user.username}` : 'Everything'}
         description={
@@ -97,47 +99,55 @@ export function OverviewPage() {
             ? hasData
               ? 'Your open-source contributions — PRs, repos, and milestones in one dashboard.'
               : 'Sync from GitHub once to pull your full contribution history.'
-            : 'The simple open-source contribution tracker — PRs, repos, and your journey in one place.'
+            : 'Your open-source story — PRs, repos, and milestones in one beautiful dashboard.'
         }
         footnote={
           user
             ? 'Move your mouse — the OSS squad shifts with you ✨'
-            : 'Sign in once — your PRs, repos, and journey appear here.'
+            : undefined
         }
         primaryAction={
           user ? (
             <SyncControls onComplete={() => loadData().catch(() => {})} />
           ) : (
             <button type="button" onClick={login} className="hero-cta hero-cta--primary">
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.778-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+              </svg>
               Sign in with GitHub
             </button>
           )
         }
         secondaryAction={
-          <Link to={user ? '/repos' : '/explore'} className="hero-cta hero-cta--secondary">
-            {user ? (
-              <>
-                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                  <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5z" />
-                </svg>
-                My PRs
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                  <path d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0 11-1.06 1.06l-3.04-3.04zm-2.122-2.122a4.5 4.5 0 105.659-5.659 4.5 4.5 0 00-5.66 5.66z" />
-                </svg>
-                Explore
-              </>
-            )}
-          </Link>
+          user ? (
+            <Link to="/repos" className="hero-cta hero-cta--secondary">
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5z" />
+              </svg>
+              My PRs
+            </Link>
+          ) : (
+            <Link to="/explore" className="hero-cta hero-cta--secondary">
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                <path d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0 11-1.06 1.06l-3.04-3.04zm-2.122-2.122a4.5 4.5 0 105.659-5.659 4.5 4.5 0 00-5.66 5.66z" />
+              </svg>
+              Explore
+            </Link>
+          )
         }
-        meta={<SystemStatus health={health} error={error} loading={loading} />}
-      />
+        meta={user ? <SystemStatus health={health} error={error} loading={loading} /> : undefined}
+      >
+        {!user && (
+          <ul className="hero-mirofish__features">
+            <li>Cross-repo PR inbox</li>
+            <li>Contribution journey timeline</li>
+            <li>Analytics &amp; milestones</li>
+          </ul>
+        )}
+      </DashboardHero>
 
+      {user && (
       <main className="page-main">
-        {oauthError && <p className="alert alert-error mb-4">{oauthError}</p>}
-
         <section className="grid gap-4 sm:grid-cols-3">
           {loading || authLoading ? (
             <>
@@ -172,21 +182,6 @@ export function OverviewPage() {
           )}
         </section>
 
-        {!authLoading && !user && (
-          <div className="mt-8">
-            <EmptyState
-              icon="github"
-              title="Connect your GitHub account"
-              description="Sign in to import your repos, pull requests, and commit history."
-              action={
-                <button type="button" onClick={() => loginWithGitHub()} className="btn btn-primary">
-                  Sign in with GitHub
-                </button>
-              }
-            />
-          </div>
-        )}
-
         {user && hasData && <AnalyticsPanel />}
 
         {user && repos.length > 0 && (
@@ -214,6 +209,11 @@ export function OverviewPage() {
           </div>
         )}
       </main>
+      )}
+
+      {!user && oauthError && (
+        <p className="landing-oauth-error">{oauthError}</p>
+      )}
     </>
   );
 }
