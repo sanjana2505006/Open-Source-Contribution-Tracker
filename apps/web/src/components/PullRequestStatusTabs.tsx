@@ -15,23 +15,20 @@ type Props = {
 
 export function PullRequestStatusTabs({ status, counts, onChange }: Props) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="segmented" role="tablist" aria-label="PR status filter">
       {TABS.map((tab) => {
         const active = status === tab.id;
         return (
           <button
             key={tab.id}
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={() => onChange(tab.id)}
-            className={[
-              'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs transition-colors',
-              active
-                ? 'bg-[var(--color-accent)]/15 text-[var(--color-text)] ring-1 ring-[var(--color-accent)]/30'
-                : 'bg-[var(--color-surface)] text-[var(--color-muted)] hover:text-[var(--color-text)]',
-            ].join(' ')}
+            className={['segmented-item', active ? 'segmented-item-active' : ''].join(' ')}
           >
             {tab.label}
-            <span className="font-mono text-[10px] opacity-70">{counts[tab.id]}</span>
+            <span className="font-mono text-[10px] tabular-nums opacity-60">{counts[tab.id]}</span>
           </button>
         );
       })}

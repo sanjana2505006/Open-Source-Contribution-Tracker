@@ -6,12 +6,20 @@ type PanelProps = {
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  flush?: boolean;
 };
 
-export function Panel({ title, subtitle, action, children, className = '' }: PanelProps) {
+export function Panel({
+  title,
+  subtitle,
+  action,
+  children,
+  className = '',
+  flush = false,
+}: PanelProps) {
   return (
     <div className={`panel ${className}`}>
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
+      <div className="panel-header">
         <div>
           <h3 className="text-sm font-medium">{title}</h3>
           {subtitle && (
@@ -20,7 +28,7 @@ export function Panel({ title, subtitle, action, children, className = '' }: Pan
         </div>
         {action}
       </div>
-      <div className="p-4">{children}</div>
+      <div className={flush ? 'panel-body-flush' : 'panel-body'}>{children}</div>
     </div>
   );
 }

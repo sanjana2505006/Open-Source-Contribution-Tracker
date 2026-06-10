@@ -3,6 +3,7 @@ import type { ContributorProfile, WatchedContributor } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { ContributorDashboard } from '../components/ContributorDashboard';
 import { EmptyState } from '../components/EmptyState';
+import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
 import {
   exploreUser,
@@ -94,16 +95,13 @@ export function ExplorePage() {
 
   if (!user) {
     return (
-      <main className="p-6">
+      <main className="page-main">
         <EmptyState
+          icon="search"
           title="Sign in to explore contributors"
           description="Look up any public GitHub profile to see where they contribute."
           action={
-            <button
-              type="button"
-              onClick={login}
-              className="rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white"
-            >
+            <button type="button" onClick={login} className="btn btn-primary">
               Sign in with GitHub
             </button>
           }
@@ -114,47 +112,39 @@ export function ExplorePage() {
 
   return (
     <>
-      <header className="border-b border-[var(--color-border)] px-6 py-5">
-        <h2 className="text-xl font-medium tracking-tight">Explore</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">
-          Look up any GitHub username — public repos, PRs, and recent commits only.
-        </p>
-
-        <form onSubmit={handleLookup} className="mt-4 flex flex-wrap gap-2">
+      <PageHeader
+        eyebrow="Public profiles"
+        title="Explore"
+        description="Look up any GitHub username — public repos, PRs, and recent commits only."
+      >
+        <form onSubmit={handleLookup} className="mt-5 flex max-w-xl flex-wrap gap-2">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="github username"
-            className="min-w-[200px] flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-accent-dim)]"
+            className="input min-w-[200px] flex-1 text-sm"
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="btn btn-primary">
             {loading ? 'Searching…' : 'Look up'}
           </button>
         </form>
+        {error && <p className="alert alert-error mt-3 max-w-xl">{error}</p>}
+      </PageHeader>
 
-        {error && (
-          <p className="mt-3 text-sm text-[var(--color-bad)]">{error}</p>
-        )}
-      </header>
-
-      <main className="flex flex-col gap-6 p-6 lg:flex-row">
+      <main className="page-main flex flex-col gap-6 lg:flex-row">
         <aside className="lg:w-56 lg:shrink-0">
           <Panel title="Watchlist" subtitle="Saved profiles">
             {watchlist.length === 0 ? (
               <p className="text-sm text-[var(--color-muted)]">No one watched yet.</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="list-picker">
                 {watchlist.map((w) => (
                   <li key={w.username}>
                     <button
                       type="button"
                       onClick={() => handleSelect(w.username)}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-[var(--color-panel-hover)]"
+                      className="list-picker-item"
                     >
                       {w.avatarUrl ? (
                         <img src={w.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
@@ -178,12 +168,12 @@ export function ExplorePage() {
         <div className="min-w-0 flex-1">
           {profile && (
             <>
-              <div className="mb-6 flex flex-wrap items-center gap-4">
+              <div className="panel mb-6 flex flex-wrap items-center gap-4 px-4 py-4">
                 {profile.avatarUrl && (
                   <img
                     src={profile.avatarUrl}
                     alt=""
-                    className="h-14 w-14 rounded-full ring-2 ring-[var(--color-border)]"
+                    className="h-14 w-14 rounded-full ring-2 ring-[var(--color-accent)]/20"
                   />
                 )}
                 <div className="flex-1">
@@ -202,12 +192,8 @@ export function ExplorePage() {
                     synced {new Date(profile.syncedAt).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleWatch}
-                    className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm hover:border-[var(--color-accent-dim)]"
-                  >
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={handleWatch} className="btn btn-secondary text-sm">
                     Watch
                   </button>
                   <button
@@ -219,7 +205,7 @@ export function ExplorePage() {
                           setError(err instanceof Error ? err.message : 'Refresh failed'),
                         )
                     }
-                    className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm hover:border-[var(--color-accent-dim)]"
+                    className="btn btn-secondary text-sm"
                   >
                     Refresh
                   </button>
@@ -230,7 +216,7 @@ export function ExplorePage() {
                         .then(loadWatchlist)
                         .catch(() => {})
                     }
-                    className="rounded-md px-3 py-1.5 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                    className="btn btn-ghost text-sm"
                   >
                     Unwatch
                   </button>
@@ -243,6 +229,7 @@ export function ExplorePage() {
 
           {!profile && !loading && (
             <EmptyState
+              icon="search"
               title="Search a GitHub username"
               description="See their public PR history, contributed repos, and activity charts — like viewing their GitHub profile, but aggregated."
             />

@@ -3,6 +3,7 @@ import type { HealthResponse, RepositorySummary, StatsSummary } from '@osct/shar
 import { useAuth } from '../app/AuthProvider';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { EmptyState } from '../components/EmptyState';
+import { DashboardHero } from '../components/hero/DashboardHero';
 import { Panel } from '../components/Panel';
 import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
@@ -87,45 +88,36 @@ export function OverviewPage() {
 
   return (
     <>
-      <header className="border-b border-[var(--color-border)] px-6 py-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="animate-fade-up">
-            {user ? (
-              <>
-                <p className="font-mono text-xs text-[var(--color-muted)]">Dashboard</p>
-                <h2 className="mt-1 text-xl font-medium tracking-tight">
-                  Hey,{' '}
-                  <span className="text-[var(--color-accent)]">@{user.username}</span>
-                </h2>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">
-                  {hasData
-                    ? 'Your open-source activity at a glance.'
-                    : 'Sync once to populate your stats and charts.'}
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="text-xl font-medium tracking-tight">Overview</h2>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">
-                  Track your GitHub contributions in one place.
-                </p>
-              </>
-            )}
-          </div>
-
-          <div className="flex flex-col items-end gap-3 animate-fade-up animate-fade-up-delay-1">
+      <DashboardHero
+        eyebrow={user ? 'Dashboard' : 'Open Source Tracker'}
+        title={
+          user ? (
+            <>
+              Hey, <span className="text-[var(--color-accent)]">@{user.username}</span>
+            </>
+          ) : (
+            <>
+              Your contributions, <span className="text-[var(--color-accent)]">visualized</span>
+            </>
+          )
+        }
+        description={
+          user
+            ? hasData
+              ? 'Your open-source activity at a glance.'
+              : 'Sync once to populate your stats and charts.'
+            : 'Track pull requests, repos, and milestones across GitHub — in one place.'
+        }
+        actions={
+          <>
             <SystemStatus health={health} error={error} loading={loading} />
             {user && <SyncControls onComplete={() => loadData().catch(() => {})} />}
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      <main className="p-6">
-        {oauthError && (
-          <p className="mb-4 rounded-md border border-[var(--color-bad)]/30 bg-[var(--color-bad)]/10 px-4 py-3 text-sm text-[var(--color-bad)]">
-            {oauthError}
-          </p>
-        )}
+      <main className="page-main">
+        {oauthError && <p className="alert alert-error mb-4">{oauthError}</p>}
 
         <section className="grid gap-4 sm:grid-cols-3">
           {loading || authLoading ? (
@@ -164,14 +156,11 @@ export function OverviewPage() {
         {!authLoading && !user && (
           <div className="mt-8">
             <EmptyState
+              icon="github"
               title="Connect your GitHub account"
               description="Sign in to import your repos, pull requests, and commit history."
               action={
-                <button
-                  type="button"
-                  onClick={login}
-                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
-                >
+                <button type="button" onClick={login} className="btn btn-primary">
                   Sign in with GitHub
                 </button>
               }
@@ -184,6 +173,7 @@ export function OverviewPage() {
         {user && repos.length > 0 && (
           <div className="mt-8 animate-fade-up">
             <Panel
+              flush
               title="Repositories"
               subtitle={
                 stats

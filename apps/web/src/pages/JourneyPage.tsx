@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { JourneyBundle } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { EmptyState } from '../components/EmptyState';
+import { PageHeader } from '../components/PageHeader';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { MilestoneHighlight } from '../components/MilestoneHighlight';
 import { Panel } from '../components/Panel';
@@ -45,16 +46,13 @@ export function JourneyPage() {
 
   if (!user) {
     return (
-      <main className="p-6">
+      <main className="page-main">
         <EmptyState
+          icon="timeline"
           title="Sign in to see your journey"
           description="A timeline of your first PR, first merge, and other open-source milestones."
           action={
-            <button
-              type="button"
-              onClick={login}
-              className="rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white"
-            >
+            <button type="button" onClick={login} className="btn btn-primary">
               Sign in with GitHub
             </button>
           }
@@ -65,19 +63,14 @@ export function JourneyPage() {
 
   return (
     <>
-      <header className="border-b border-[var(--color-border)] px-6 py-5">
-        <h2 className="text-xl font-medium tracking-tight">Contribution journey</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">
-          Milestones from your synced GitHub activity — first PR, first merge, and beyond.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Milestones"
+        title="Contribution journey"
+        description="Milestones from your synced GitHub activity — first PR, first merge, and beyond."
+      />
 
-      <main className="space-y-4 p-6">
-        {error && (
-          <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </p>
-        )}
+      <main className="page-main space-y-4">
+        {error && <p className="alert alert-error">{error}</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <MilestoneHighlight

@@ -1,22 +1,15 @@
 import { Link } from 'react-router-dom';
 import type { PullRequestItem } from '@osct/shared';
+import { StatusBadge } from './StatusBadge';
 
-function statusLabel(pr: PullRequestItem): string {
+function statusLabel(pr: PullRequestItem): 'open' | 'merged' | 'closed' {
   if (pr.isMerged || pr.state === 'merged') return 'merged';
   if (pr.state === 'open') return 'open';
   return 'closed';
 }
 
-function statusClass(pr: PullRequestItem): string {
-  const s = statusLabel(pr);
-  if (s === 'merged') return 'bg-[var(--color-ok)]/15 text-[var(--color-ok)]';
-  if (s === 'open') return 'bg-[var(--color-accent)]/15 text-[var(--color-accent)]';
-  return 'bg-[var(--color-muted)]/15 text-[var(--color-muted)]';
-}
-
 function daysOpen(occurredAt: string): number {
-  const opened = new Date(occurredAt).getTime();
-  return Math.floor((Date.now() - opened) / (1000 * 60 * 60 * 24));
+  return Math.floor((Date.now() - new Date(occurredAt).getTime()) / (1000 * 60 * 60 * 24));
 }
 
 type Props = {
@@ -34,9 +27,9 @@ export function PullRequestTable({
 }: Props) {
   if (loading) {
     return (
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton h-12 rounded-md" />
+      <div className="space-y-0 divide-y divide-[var(--color-border)] p-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="skeleton m-2 h-11 rounded-lg" />
         ))}
       </div>
     );
@@ -44,28 +37,25 @@ export function PullRequestTable({
 
   if (pullRequests.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--color-muted)]">{emptyMessage}</p>
+      <p className="px-4 py-10 text-center text-sm text-[var(--color-muted)]">{emptyMessage}</p>
     );
   }
 
   return (
     <ul className="divide-y divide-[var(--color-border)]">
       {pullRequests.map((pr) => {
-        const openDays = statusLabel(pr) === 'open' ? daysOpen(pr.occurredAt) : null;
+        const status = statusLabel(pr);
+        const openDays = status === 'open' ? daysOpen(pr.occurredAt) : null;
         const stale = openDays !== null && openDays >= 30;
 
         return (
           <li key={pr.id}>
             <div className="group flex flex-wrap items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--color-panel-hover)]">
-              <span
-                className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] uppercase ${statusClass(pr)}`}
-              >
-                {statusLabel(pr)}
-              </span>
+              <StatusBadge status={status} />
               {showRepository && (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(pr.repositoryFullName)}`}
-                  className="shrink-0 font-mono text-[10px] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                  className="shrink-0 rounded-md bg-[var(--color-surface)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-accent)] hover:ring-[var(--color-accent)]/30"
                 >
                   {pr.repositoryFullName}
                 </Link>
@@ -74,18 +64,14 @@ export function PullRequestTable({
                 href={pr.htmlUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 flex-1 text-sm hover:text-[var(--color-accent)]"
+                className="min-w-0 flex-1 text-sm transition-colors group-hover:text-[var(--color-accent)]"
               >
                 {pr.title}
               </a>
-              {stale && (
-                <span className="shrink-0 rounded bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] text-amber-400">
-                  {openDays}d open
-                </span>
-              )}
+              {stale && <StatusBadge status="stale" label={`${openDays}d open`} />}
               <time
                 dateTime={pr.occurredAt}
-                className="shrink-0 font-mono text-[11px] text-[var(--color-muted)]"
+                className="shrink-0 font-mono text-[11px] tabular-nums text-[var(--color-muted)]"
               >
                 {new Date(pr.occurredAt).toLocaleDateString()}
               </time>

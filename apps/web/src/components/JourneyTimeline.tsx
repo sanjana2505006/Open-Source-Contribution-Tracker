@@ -15,19 +15,19 @@ function typeLabel(type: MilestoneType): string {
     case 'hundredth_contribution':
       return '100';
     default:
-      return 'milestone';
+      return '·';
   }
 }
 
 function typeAccent(type: MilestoneType): string {
   switch (type) {
     case 'first_merged_pr':
-      return 'border-[var(--color-ok)] bg-[var(--color-ok)]/15 text-[var(--color-ok)]';
+      return 'border-[var(--color-ok)]/40 bg-[var(--color-ok)]/12 text-[var(--color-ok)]';
     case 'first_pull_request':
     case 'tenth_pr':
-      return 'border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]';
+      return 'border-[var(--color-accent)]/40 bg-[var(--color-accent)]/12 text-[var(--color-accent)]';
     case 'hundredth_contribution':
-      return 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+      return 'border-[var(--color-warn)]/40 bg-[var(--color-warn)]/10 text-[var(--color-warn)]';
     default:
       return 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]';
   }
@@ -43,7 +43,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
     return (
       <div className="space-y-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="skeleton h-20 rounded-md" />
+          <div key={i} className="skeleton h-20 rounded-lg" />
         ))}
       </div>
     );
@@ -62,7 +62,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
       {milestones.map((milestone, index) => {
         const isLast = index === milestones.length - 1;
         const content = (
-          <div className="min-w-0 flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-4 py-3.5 transition-colors hover:border-[var(--color-border-strong)]">
+          <div className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/50 px-4 py-3.5 transition-colors hover:border-[var(--color-border-strong)] hover:bg-[var(--color-panel-hover)]">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium">{milestone.title}</p>
@@ -79,7 +79,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
               </div>
               <time
                 dateTime={milestone.occurredAt}
-                className="shrink-0 font-mono text-[11px] text-[var(--color-muted)]"
+                className="shrink-0 font-mono text-[11px] tabular-nums text-[var(--color-muted)]"
               >
                 {new Date(milestone.occurredAt).toLocaleDateString(undefined, {
                   year: 'numeric',
@@ -95,12 +95,12 @@ export function JourneyTimeline({ milestones, loading }: Props) {
           <li key={milestone.id} className="relative flex gap-4 pb-8">
             {!isLast && (
               <span
-                className="absolute left-[15px] top-8 h-[calc(100%-8px)] w-px bg-[var(--color-border)]"
+                className="absolute left-[17px] top-9 h-[calc(100%-12px)] w-px bg-gradient-to-b from-[var(--color-border-strong)] to-transparent"
                 aria-hidden
               />
             )}
             <span
-              className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-mono text-[9px] uppercase ${typeAccent(milestone.type)}`}
+              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-mono text-[9px] font-medium uppercase ${typeAccent(milestone.type)}`}
             >
               {typeLabel(milestone.type)}
             </span>
@@ -109,7 +109,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
                 href={milestone.htmlUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 flex-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                className="min-w-0 flex-1 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               >
                 {content}
               </a>

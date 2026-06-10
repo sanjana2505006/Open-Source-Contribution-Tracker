@@ -14,7 +14,7 @@ export function UserMenu() {
   if (loading) {
     return (
       <div className="border-t border-[var(--color-border)] p-3">
-        <div className="skeleton h-10 w-full rounded-md" />
+        <div className="skeleton h-11 w-full rounded-lg" />
       </div>
     );
   }
@@ -22,11 +22,7 @@ export function UserMenu() {
   if (!user) {
     return (
       <div className="border-t border-[var(--color-border)] p-3">
-        <button
-          type="button"
-          onClick={login}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2.5 text-sm font-medium transition-colors hover:border-[var(--color-muted)] hover:bg-[var(--color-panel-hover)]"
-        >
+        <button type="button" onClick={login} className="btn btn-secondary w-full">
           <GitHubIcon />
           Sign in with GitHub
         </button>
@@ -36,12 +32,12 @@ export function UserMenu() {
 
   return (
     <div className="border-t border-[var(--color-border)] p-3">
-      <div className="flex items-center gap-2.5 rounded-md bg-[var(--color-surface)]/60 px-2.5 py-2 ring-1 ring-[var(--color-border)]">
+      <div className="flex items-center gap-2.5 rounded-lg bg-[var(--color-surface)]/80 px-2.5 py-2 ring-1 ring-[var(--color-border)]">
         {user.avatarUrl ? (
           <img
             src={user.avatarUrl}
             alt=""
-            className="h-9 w-9 rounded-full ring-2 ring-[var(--color-border)]"
+            className="h-9 w-9 rounded-full ring-2 ring-[var(--color-accent)]/20"
           />
         ) : (
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-sm">
@@ -55,11 +51,7 @@ export function UserMenu() {
           </p>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => logout()}
-        className="mt-2 w-full rounded-md px-2 py-1.5 text-left text-xs text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface)]/50 hover:text-[var(--color-text)]"
-      >
+      <button type="button" onClick={() => logout()} className="btn btn-ghost mt-1.5 w-full px-2 py-1.5 text-xs">
         Sign out
       </button>
     </div>

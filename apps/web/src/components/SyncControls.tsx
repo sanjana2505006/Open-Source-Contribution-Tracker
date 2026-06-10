@@ -53,7 +53,7 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
         type="button"
         onClick={handleSync}
         disabled={running}
-        className="inline-flex items-center gap-2 rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="btn btn-primary"
       >
         {running && (
           <svg className="h-4 w-4 animate-spin" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -64,14 +64,14 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
       </button>
 
       {running && status && (
-        <div className="w-full max-w-[200px]">
-          <div className="h-1 overflow-hidden rounded-full bg-[var(--color-border)]">
+        <div className="w-full max-w-[220px]">
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">
             <div
               className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
               style={{ width: `${Math.min(95, 15 + status.reposSynced * 2)}%` }}
             />
           </div>
-          <p className="mt-1 text-right font-mono text-[10px] text-[var(--color-muted)]">
+          <p className="mt-1.5 text-right font-mono text-[10px] text-[var(--color-muted)]">
             {status.reposSynced > 0 ? `${status.reposSynced} items processed` : 'fetching from GitHub…'}
           </p>
         </div>
@@ -82,7 +82,7 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
       )}
 
       {!running && status?.status === 'failed' && status.errorMessage && (
-        <p className="max-w-[220px] text-right font-mono text-[10px] text-[var(--color-bad)]">
+        <p className="max-w-[240px] text-right font-mono text-[10px] leading-snug text-[var(--color-bad)]">
           {status.errorMessage}
         </p>
       )}

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { PullRequestCounts, PullRequestItem, PullRequestStatusFilter, RepositorySummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { EmptyState } from '../components/EmptyState';
+import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
 import { PullRequestStatusTabs } from '../components/PullRequestStatusTabs';
 import { PullRequestTable } from '../components/PullRequestTable';
@@ -103,16 +104,13 @@ export function RepositoriesPage() {
 
   if (!user) {
     return (
-      <main className="p-6">
+      <main className="page-main">
         <EmptyState
+          icon="inbox"
           title="Sign in to browse your PRs"
           description="See every pull request you've opened — across all repos or filtered by repository."
           action={
-            <button
-              type="button"
-              onClick={login}
-              className="rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white"
-            >
+            <button type="button" onClick={login} className="btn btn-primary">
               Sign in with GitHub
             </button>
           }
@@ -134,52 +132,46 @@ export function RepositoriesPage() {
 
   return (
     <>
-      <header className="border-b border-[var(--color-border)] px-6 py-5">
-        <h2 className="text-xl font-medium tracking-tight">My pull requests</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">
-          {inboxMode
+      <PageHeader
+        eyebrow="Pull requests"
+        title="My PRs"
+        description={
+          inboxMode
             ? 'All your PRs in one place — filter by status or drill into a repo.'
-            : `Every PR you've raised in ${selectedRepo}.`}
-        </p>
-      </header>
+            : `Every PR you've raised in ${selectedRepo}.`
+        }
+      />
 
-      <main className="flex flex-col gap-4 p-6 lg:flex-row lg:items-start">
+      <main className="page-main flex flex-col gap-4 lg:flex-row lg:items-start">
         <aside className="w-full lg:w-72 lg:shrink-0">
           <Panel title="Browse" subtitle={`${repos.length} repos`}>
             <button
               type="button"
               onClick={selectInbox}
-              className={[
-                'mb-3 flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm transition-colors',
-                inboxMode
-                  ? 'bg-[var(--color-accent)]/15 text-[var(--color-text)]'
-                  : 'hover:bg-[var(--color-panel-hover)] text-[var(--color-muted)] hover:text-[var(--color-text)]',
-              ].join(' ')}
+              className={['list-picker-item mb-2', inboxMode ? 'list-picker-item-active' : ''].join(' ')}
             >
               <span className="font-medium">All PRs</span>
-              <span className="font-mono text-[10px] text-[var(--color-muted)]">{counts.all}</span>
+              <span className="font-mono text-[10px] tabular-nums opacity-70">{counts.all}</span>
             </button>
             <input
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="filter repos…"
-              className="mb-3 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 font-mono text-xs outline-none focus:border-[var(--color-accent-dim)]"
+              className="input mb-3"
             />
             {loadingRepos ? (
               <div className="skeleton h-40 rounded-md" />
             ) : (
-              <ul className="max-h-[360px] space-y-0.5 overflow-y-auto">
+              <ul className="list-picker scroll-area max-h-[360px] overflow-y-auto">
                 {filteredRepos.map((repo) => (
                   <li key={repo.id}>
                     <button
                       type="button"
                       onClick={() => selectRepo(repo.fullName)}
                       className={[
-                        'flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors',
-                        selectedRepo === repo.fullName
-                          ? 'bg-[var(--color-accent)]/15 text-[var(--color-text)]'
-                          : 'hover:bg-[var(--color-panel-hover)] text-[var(--color-muted)] hover:text-[var(--color-text)]',
+                        'list-picker-item',
+                        selectedRepo === repo.fullName ? 'list-picker-item-active' : '',
                       ].join(' ')}
                     >
                       <span className="truncate font-mono text-xs">{repo.fullName}</span>
@@ -199,7 +191,7 @@ export function RepositoriesPage() {
         <div className="min-w-0 flex-1 space-y-3">
           <PullRequestStatusTabs status={status} counts={counts} onChange={setStatus} />
 
-          <Panel title={panelTitle} subtitle={panelSubtitle}>
+          <Panel flush title={panelTitle} subtitle={panelSubtitle}>
             <PullRequestTable
               pullRequests={pullRequests}
               loading={loadingPrs}

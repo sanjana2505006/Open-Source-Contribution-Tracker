@@ -12,12 +12,12 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
     <ul className="divide-y divide-[var(--color-border)]">
       {repos.map((repo) => (
         <li key={repo.id}>
-          <div className="flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--color-panel-hover)]">
+          <div className="group flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--color-panel-hover)]">
             <div className="min-w-0 flex-1">
               {linkToPrs ? (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
-                  className="truncate font-mono text-sm hover:text-[var(--color-accent)]"
+                  className="truncate font-mono text-sm transition-colors group-hover:text-[var(--color-accent)]"
                 >
                   {repo.fullName}
                 </Link>
@@ -26,7 +26,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
                   href={repo.htmlUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="truncate font-mono text-sm hover:text-[var(--color-accent)]"
+                  className="truncate font-mono text-sm transition-colors group-hover:text-[var(--color-accent)]"
                 >
                   {repo.fullName}
                 </a>
@@ -34,7 +34,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
               {repo.primaryLanguage && (
                 <span className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    className="inline-block h-2 w-2 rounded-full ring-1 ring-white/10"
                     style={{ background: languageColor(repo.primaryLanguage) }}
                   />
                   {repo.primaryLanguage}
@@ -45,16 +45,16 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
               {linkToPrs && (
                 <Link
                   to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
-                  className="rounded bg-[var(--color-surface)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                  className="btn btn-ghost px-2 py-1 font-mono text-[10px]"
                 >
-                  view PRs
+                  PRs →
                 </Link>
               )}
               <a
                 href={repo.htmlUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-[10px] text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                className="btn btn-ghost px-2 py-1 font-mono text-[10px]"
                 title="Open on GitHub"
               >
                 gh ↗
