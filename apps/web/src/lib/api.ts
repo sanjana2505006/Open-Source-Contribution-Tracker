@@ -3,6 +3,7 @@ import type {
   HealthResponse,
   JourneyBundle,
   PullRequestList,
+  PullRequestStatusFilter,
   RepositorySummary,
   StatsSummary,
   SyncStatus,
@@ -100,8 +101,18 @@ export function fetchAnalytics(from?: string, to?: string): Promise<AnalyticsBun
   return apiFetch<AnalyticsBundle>(`/api/v1/analytics${qs ? `?${qs}` : ''}`);
 }
 
-export function fetchPullRequests(repo: string): Promise<PullRequestList> {
-  const params = new URLSearchParams({ repo, limit: '500' });
+export type FetchPullRequestsOpts = {
+  repo?: string;
+  status?: PullRequestStatusFilter;
+  sort?: 'newest' | 'oldest';
+  limit?: number;
+};
+
+export function fetchPullRequests(opts: FetchPullRequestsOpts = {}): Promise<PullRequestList> {
+  const params = new URLSearchParams({ limit: String(opts.limit ?? 500) });
+  if (opts.repo) params.set('repo', opts.repo);
+  if (opts.status && opts.status !== 'all') params.set('status', opts.status);
+  if (opts.sort) params.set('sort', opts.sort);
   return apiFetch<PullRequestList>(`/api/v1/pull-requests?${params}`);
 }
 

@@ -1,23 +1,61 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { PullRequestItem, RepositorySummary } from '@osct/shared';
+import type { PullRequestCounts, PullRequestItem, PullRequestStatusFilter, RepositorySummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { EmptyState } from '../components/EmptyState';
 import { Panel } from '../components/Panel';
+import { PullRequestStatusTabs } from '../components/PullRequestStatusTabs';
 import { PullRequestTable } from '../components/PullRequestTable';
 import { fetchPullRequests, fetchRepositories } from '../lib/api';
+
+const DEFAULT_COUNTS: PullRequestCounts = { all: 0, open: 0, merged: 0, closed: 0 };
+
+function parseStatus(
+  value: string | null,
+  inboxMode: boolean,
+): PullRequestStatusFilter {
+  if (value === 'open' || value === 'merged' || value === 'closed' || value === 'all') {
+    return value;
+  }
+  return inboxMode ? 'open' : 'all';
+}
 
 export function RepositoriesPage() {
   const { user, login } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedRepo = searchParams.get('repo') ?? '';
+  const inboxMode = !selectedRepo;
+  const status = parseStatus(searchParams.get('status'), inboxMode);
 
   const [repos, setRepos] = useState<RepositorySummary[]>([]);
   const [pullRequests, setPullRequests] = useState<PullRequestItem[]>([]);
+  const [counts, setCounts] = useState<PullRequestCounts>(DEFAULT_COUNTS);
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingPrs, setLoadingPrs] = useState(false);
+
+  const loadPrs = useCallback(() => {
+    if (!user) return;
+
+    setLoadingPrs(true);
+    fetchPullRequests({
+      repo: selectedRepo || undefined,
+      status,
+      sort: status === 'open' ? 'oldest' : 'newest',
+    })
+      .then((data) => {
+        setPullRequests(data.items);
+        setCounts(data.counts);
+        setTotal(data.total);
+      })
+      .catch(() => {
+        setPullRequests([]);
+        setCounts(DEFAULT_COUNTS);
+        setTotal(0);
+      })
+      .finally(() => setLoadingPrs(false));
+  }, [user, selectedRepo, status]);
 
   useEffect(() => {
     if (!user) return;
@@ -28,31 +66,9 @@ export function RepositoriesPage() {
       .finally(() => setLoadingRepos(false));
   }, [user]);
 
-  const loadPrs = useCallback(
-    (repo: string) => {
-      if (!repo) {
-        setPullRequests([]);
-        setTotal(0);
-        return;
-      }
-      setLoadingPrs(true);
-      fetchPullRequests(repo)
-        .then((data) => {
-          setPullRequests(data.items);
-          setTotal(data.total);
-        })
-        .catch(() => {
-          setPullRequests([]);
-          setTotal(0);
-        })
-        .finally(() => setLoadingPrs(false));
-    },
-    [],
-  );
-
   useEffect(() => {
-    loadPrs(selectedRepo);
-  }, [selectedRepo, loadPrs]);
+    loadPrs();
+  }, [loadPrs]);
 
   const filteredRepos = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -60,8 +76,29 @@ export function RepositoriesPage() {
     return repos.filter((r) => r.fullName.toLowerCase().includes(q));
   }, [repos, filter]);
 
+  function updateParams(next: { repo?: string; status?: PullRequestStatusFilter }) {
+    const params = new URLSearchParams(searchParams);
+    if (next.repo === undefined || next.repo === '') {
+      params.delete('repo');
+    } else {
+      params.set('repo', next.repo);
+    }
+    if (next.status) {
+      params.set('status', next.status);
+    }
+    setSearchParams(params);
+  }
+
+  function selectInbox() {
+    updateParams({ repo: '' });
+  }
+
   function selectRepo(fullName: string) {
-    setSearchParams({ repo: fullName });
+    updateParams({ repo: fullName });
+  }
+
+  function setStatus(next: PullRequestStatusFilter) {
+    updateParams({ status: next });
   }
 
   if (!user) {
@@ -69,7 +106,7 @@ export function RepositoriesPage() {
       <main className="p-6">
         <EmptyState
           title="Sign in to browse your PRs"
-          description="Find every pull request you've opened, grouped by repository."
+          description="See every pull request you've opened — across all repos or filtered by repository."
           action={
             <button
               type="button"
@@ -84,18 +121,44 @@ export function RepositoriesPage() {
     );
   }
 
+  const panelTitle = inboxMode ? 'PR inbox' : selectedRepo;
+  const panelSubtitle = inboxMode
+    ? `${counts.open} open · ${counts.merged} merged · oldest open first`
+    : `${total} pull request${total === 1 ? '' : 's'}`;
+
+  const emptyMessage = inboxMode
+    ? status === 'open'
+      ? 'No open PRs — everything is merged or closed.'
+      : 'No pull requests match this filter.'
+    : 'No pull requests found for this repo. Try syncing again if you expect some here.';
+
   return (
     <>
       <header className="border-b border-[var(--color-border)] px-6 py-5">
         <h2 className="text-xl font-medium tracking-tight">My pull requests</h2>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          Pick a repo to see every PR you've raised there.
+          {inboxMode
+            ? 'All your PRs in one place — filter by status or drill into a repo.'
+            : `Every PR you've raised in ${selectedRepo}.`}
         </p>
       </header>
 
       <main className="flex flex-col gap-4 p-6 lg:flex-row lg:items-start">
         <aside className="w-full lg:w-72 lg:shrink-0">
-          <Panel title="Repositories" subtitle={`${repos.length} synced`}>
+          <Panel title="Browse" subtitle={`${repos.length} repos`}>
+            <button
+              type="button"
+              onClick={selectInbox}
+              className={[
+                'mb-3 flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm transition-colors',
+                inboxMode
+                  ? 'bg-[var(--color-accent)]/15 text-[var(--color-text)]'
+                  : 'hover:bg-[var(--color-panel-hover)] text-[var(--color-muted)] hover:text-[var(--color-text)]',
+              ].join(' ')}
+            >
+              <span className="font-medium">All PRs</span>
+              <span className="font-mono text-[10px] text-[var(--color-muted)]">{counts.all}</span>
+            </button>
             <input
               type="text"
               value={filter}
@@ -106,7 +169,7 @@ export function RepositoriesPage() {
             {loadingRepos ? (
               <div className="skeleton h-40 rounded-md" />
             ) : (
-              <ul className="max-h-[420px] space-y-0.5 overflow-y-auto">
+              <ul className="max-h-[360px] space-y-0.5 overflow-y-auto">
                 {filteredRepos.map((repo) => (
                   <li key={repo.id}>
                     <button
@@ -133,20 +196,17 @@ export function RepositoriesPage() {
           </Panel>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          {selectedRepo ? (
-            <Panel
-              title={selectedRepo}
-              subtitle={`${total} pull request${total === 1 ? '' : 's'}`}
-            >
-              <PullRequestTable pullRequests={pullRequests} loading={loadingPrs} />
-            </Panel>
-          ) : (
-            <EmptyState
-              title="Select a repository"
-              description="Choose a repo from the list — or open Overview and click a repo to jump here."
+        <div className="min-w-0 flex-1 space-y-3">
+          <PullRequestStatusTabs status={status} counts={counts} onChange={setStatus} />
+
+          <Panel title={panelTitle} subtitle={panelSubtitle}>
+            <PullRequestTable
+              pullRequests={pullRequests}
+              loading={loadingPrs}
+              showRepository={inboxMode}
+              emptyMessage={emptyMessage}
             />
-          )}
+          </Panel>
         </div>
       </main>
     </>

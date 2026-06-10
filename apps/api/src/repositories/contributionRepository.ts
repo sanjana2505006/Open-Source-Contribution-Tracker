@@ -56,9 +56,72 @@ export class ContributionRepository {
     return Number(result.rows[0]?.count ?? 0);
   }
 
+  private statusFilterSql(status?: string): string {
+    switch (status) {
+      case 'open':
+        return ` AND c.state = 'open' AND COALESCE(c.is_merged, FALSE) = FALSE`;
+      case 'merged':
+        return ` AND (c.is_merged = TRUE OR c.state = 'merged')`;
+      case 'closed':
+        return ` AND c.state = 'closed' AND COALESCE(c.is_merged, FALSE) = FALSE`;
+      default:
+        return '';
+    }
+  }
+
+  async countPullRequestsByStatus(
+    userId: string,
+    repo?: string,
+  ): Promise<{ all: number; open: number; merged: number; closed: number }> {
+    const params: unknown[] = [userId];
+    let repoFilter = '';
+
+    if (repo) {
+      params.push(repo.toLowerCase());
+      repoFilter = ` AND LOWER(r.full_name) = $${params.length}`;
+    }
+
+    const result = await this.db.query<{
+      all: string;
+      open: string;
+      merged: string;
+      closed: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS all,
+         COUNT(*) FILTER (
+           WHERE c.state = 'open' AND COALESCE(c.is_merged, FALSE) = FALSE
+         )::text AS open,
+         COUNT(*) FILTER (
+           WHERE c.is_merged = TRUE OR c.state = 'merged'
+         )::text AS merged,
+         COUNT(*) FILTER (
+           WHERE c.state = 'closed' AND COALESCE(c.is_merged, FALSE) = FALSE
+         )::text AS closed
+       FROM contributions c
+       JOIN repositories r ON r.id = c.repository_id
+       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}`,
+      params,
+    );
+
+    const row = result.rows[0];
+    return {
+      all: Number(row?.all ?? 0),
+      open: Number(row?.open ?? 0),
+      merged: Number(row?.merged ?? 0),
+      closed: Number(row?.closed ?? 0),
+    };
+  }
+
   async listPullRequests(
     userId: string,
-    opts: { repo?: string; limit?: number; offset?: number },
+    opts: {
+      repo?: string;
+      status?: string;
+      sort?: 'newest' | 'oldest';
+      limit?: number;
+      offset?: number;
+    },
   ): Promise<{ items: Array<{
     id: string;
     title: string;
@@ -78,11 +141,15 @@ export class ContributionRepository {
       repoFilter = ` AND LOWER(r.full_name) = $${params.length}`;
     }
 
+    const statusFilter = this.statusFilterSql(opts.status);
+    const order =
+      opts.sort === 'oldest' ? 'c.occurred_at ASC, c.id ASC' : 'c.occurred_at DESC, c.id DESC';
+
     const countResult = await this.db.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
        FROM contributions c
        JOIN repositories r ON r.id = c.repository_id
-       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}`,
+       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}${statusFilter}`,
       params,
     );
 
@@ -99,8 +166,8 @@ export class ContributionRepository {
       `SELECT c.id, c.title, c.state, c.is_merged, c.occurred_at, c.html_url, r.full_name
        FROM contributions c
        JOIN repositories r ON r.id = c.repository_id
-       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}
-       ORDER BY c.occurred_at DESC
+       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}${statusFilter}
+       ORDER BY ${order}
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
