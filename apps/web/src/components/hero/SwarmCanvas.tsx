@@ -195,5 +195,5 @@ export function SwarmCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="hero-immersive__swarm" aria-hidden />;
+  return <canvas ref={canvasRef} className="hero-mirofish__swarm" aria-hidden />;
 }

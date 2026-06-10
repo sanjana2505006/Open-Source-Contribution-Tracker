@@ -414,207 +414,230 @@ button:disabled {
   }
 }
 
-/* —— Immersive dashboard hero (Mirofish-style) —— */
+/* —— Mirofish-style landing hero —— */
 
-.hero-immersive {
+.hero-mirofish {
   position: relative;
-  min-height: clamp(380px, 58vh, 540px);
+  display: flex;
+  min-height: clamp(520px, 88vh, 780px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--color-border);
+  background: #050608;
 }
 
-.hero-immersive__stage {
+.hero-mirofish__ambient {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  opacity: 0.22;
+  pointer-events: none;
 }
 
-.hero-immersive__swarm {
-  position: absolute;
-  inset: 0;
+.hero-mirofish__ambient .hero-mirofish__swarm,
+.hero-mirofish__ambient canvas {
   width: 100%;
   height: 100%;
-  display: block;
 }
 
-.hero-immersive__webgl {
-  position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-  opacity: 0;
-  transform: scale(0.92);
-  transition:
-    opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.hero-immersive--open .hero-immersive__webgl {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.hero-immersive__scrim {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background:
-    radial-gradient(ellipse 90% 120% at 50% 50%, transparent 0%, rgba(10, 12, 16, 0.55) 72%),
-    linear-gradient(105deg, rgba(10, 12, 16, 0.92) 0%, rgba(10, 12, 16, 0.45) 42%, rgba(10, 12, 16, 0.2) 68%, rgba(10, 12, 16, 0.75) 100%),
-    radial-gradient(ellipse 60% 80% at 75% 40%, rgba(88, 166, 255, 0.08), transparent 65%);
-}
-
-.hero-immersive__content {
+.hero-mirofish__center {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
-  min-height: clamp(380px, 58vh, 540px);
-  max-width: 52rem;
+  max-width: 46rem;
   flex-direction: column;
-  justify-content: center;
-  padding: 2rem 1.5rem 2.25rem;
+  align-items: center;
+  padding: 3rem 1.5rem 11rem;
+  text-align: center;
 }
 
-@media (min-width: 900px) {
-  .hero-immersive__content {
-    padding: 2.5rem 2.5rem 2.75rem;
-  }
-}
-
-.hero-immersive__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  opacity: 0;
-  transform: translateY(12px);
-  animation: hero-text-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
-}
-
-.hero-immersive__title {
-  margin-top: 0.5rem;
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
+.hero-mirofish__title {
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
   font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.03em;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: hero-text-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: #fff;
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.hero-immersive__description {
-  margin-top: 1rem;
-  max-width: 34rem;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--color-muted);
-  opacity: 0;
-  transform: translateY(14px);
-  animation: hero-text-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
+.hero-mirofish__highlight {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
 }
 
-.hero-immersive__actions {
-  margin-top: 1.5rem;
+.hero-mirofish__underline {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: -0.12em;
+  width: 108%;
+  height: 0.22em;
+  color: #fff;
+  opacity: 0.95;
+}
+
+.hero-mirofish__subtitle {
+  margin-top: 1.25rem;
+  max-width: 32rem;
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  line-height: 1.65;
+  color: #8b949e;
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.hero-mirofish__ctas {
+  margin-top: 2rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   gap: 0.75rem 1rem;
-  opacity: 0;
-  transform: translateY(12px);
-  animation: hero-text-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
 }
 
-@keyframes hero-text-in {
+.hero-mirofish__ctas > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-mirofish__footnote {
+  margin-top: 1.75rem;
+  font-family: 'Caveat', cursive;
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.88);
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.hero-mirofish__meta {
+  margin-top: 1.25rem;
+  animation: hero-rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.hero-cta:hover {
+  transform: translateY(-1px);
+}
+
+.hero-cta--primary {
+  border: none;
+  background: linear-gradient(180deg, #c8cdd4 0%, #9aa3ae 48%, #6e7681 100%);
+  color: #0d1117;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.hero-cta--secondary {
+  border: 1px solid #30363d;
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+  color: #e6edf3;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.hero-mirofish__ctas .btn-primary {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #c8cdd4 0%, #9aa3ae 48%, #6e7681 100%);
+  color: #0d1117;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* —— Parallax contributor crowd —— */
+
+.hero-crowd {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  height: clamp(200px, 32vh, 320px);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.hero-crowd__fade {
+  position: absolute;
+  inset: -40% 0 0;
+  z-index: 4;
+  background: linear-gradient(to bottom, #050608 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.hero-crowd__layer {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: center;
+  transform-origin: center bottom;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.hero-crowd__layer--in {
+  transition:
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 1s ease;
+}
+
+.hero-crowd__row {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(0.25rem, 1.5vw, 1.25rem);
+  padding: 0 1rem 0;
+  color: #f0f3f6;
+}
+
+.hero-crowd__figure {
+  width: clamp(44px, 5.5vw, 72px);
+  height: auto;
+  flex-shrink: 0;
+}
+
+.hero-crowd__layer--back .hero-crowd__figure {
+  color: #6e7681;
+}
+
+.hero-crowd__layer--mid .hero-crowd__figure {
+  color: #b1bac4;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.hero-fallback {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hero-fallback--immersive {
-  opacity: 0.5;
-}
-
-.hero-fallback__core {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  border: 2px solid var(--color-accent);
-  background: var(--color-accent-glow);
-  animation: hero-pulse 2.4s ease-in-out infinite;
-}
-
-.hero-fallback__ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
-  animation: hero-ring 3s ease-in-out infinite;
-}
-
-.hero-fallback__ring--1 {
-  width: 7rem;
-  height: 7rem;
-}
-
-.hero-fallback__ring--2 {
-  width: 10rem;
-  height: 10rem;
-  animation-delay: 0.4s;
-  border-color: color-mix(in srgb, var(--color-ok) 25%, transparent);
-}
-
-@keyframes hero-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-
-@keyframes hero-ring {
-  0%,
-  100% {
-    transform: scale(0.92);
-    opacity: 0.35;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.65;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .hero-immersive__webgl {
-    opacity: 0.6;
-    transform: none;
+  .hero-mirofish__title,
+  .hero-mirofish__subtitle,
+  .hero-mirofish__ctas,
+  .hero-mirofish__footnote,
+  .hero-mirofish__meta {
+    animation: none;
+  }
+
+  .hero-crowd__layer {
     transition: none;
-  }
-
-  .hero-immersive__eyebrow,
-  .hero-immersive__title,
-  .hero-immersive__description,
-  .hero-immersive__actions {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
-  .hero-fallback__core,
-  .hero-fallback__ring {
-    animation: none;
   }
 }

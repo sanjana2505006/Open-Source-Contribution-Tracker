@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { HealthResponse, RepositorySummary, StatsSummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
@@ -9,7 +10,7 @@ import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
 import { SyncControls } from '../components/SyncControls';
 import { SystemStatus } from '../components/SystemStatus';
-import { fetchHealth, fetchRepositories, fetchStats } from '../lib/api';
+import { fetchHealth, fetchRepositories, fetchStats, loginWithGitHub } from '../lib/api';
 
 function StatIcons() {
   return {
@@ -89,31 +90,49 @@ export function OverviewPage() {
   return (
     <>
       <DashboardHero
-        eyebrow={user ? 'Dashboard' : 'Open Source Tracker'}
-        title={
-          user ? (
-            <>
-              Hey, <span className="text-[var(--color-accent)]">@{user.username}</span>
-            </>
-          ) : (
-            <>
-              Your contributions, <span className="text-[var(--color-accent)]">visualized</span>
-            </>
-          )
-        }
+        title={user ? 'Welcome' : 'Track'}
+        highlight={user ? `@${user.username}` : 'Everything'}
         description={
           user
             ? hasData
-              ? 'Your open-source activity at a glance.'
-              : 'Sync once to populate your stats and charts.'
-            : 'Track pull requests, repos, and milestones across GitHub — in one place.'
+              ? 'Your open-source contributions — PRs, repos, and milestones in one dashboard.'
+              : 'Sync from GitHub once to pull your full contribution history.'
+            : 'The simple open-source contribution tracker — PRs, repos, and your journey in one place.'
         }
-        actions={
-          <>
-            <SystemStatus health={health} error={error} loading={loading} />
-            {user && <SyncControls onComplete={() => loadData().catch(() => {})} />}
-          </>
+        footnote={
+          user
+            ? 'Move your mouse — the crowd shifts like a living network of contributors.'
+            : 'Sign in once — your PRs, repos, and journey appear here.'
         }
+        primaryAction={
+          user ? (
+            <SyncControls onComplete={() => loadData().catch(() => {})} />
+          ) : (
+            <button type="button" onClick={login} className="hero-cta hero-cta--primary">
+              Sign in with GitHub
+            </button>
+          )
+        }
+        secondaryAction={
+          <Link to={user ? '/repos' : '/explore'} className="hero-cta hero-cta--secondary">
+            {user ? (
+              <>
+                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                  <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5z" />
+                </svg>
+                My PRs
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                  <path d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0 11-1.06 1.06l-3.04-3.04zm-2.122-2.122a4.5 4.5 0 105.659-5.659 4.5 4.5 0 00-5.66 5.66z" />
+                </svg>
+                Explore
+              </>
+            )}
+          </Link>
+        }
+        meta={<SystemStatus health={health} error={error} loading={loading} />}
       />
 
       <main className="page-main">
@@ -160,7 +179,7 @@ export function OverviewPage() {
               title="Connect your GitHub account"
               description="Sign in to import your repos, pull requests, and commit history."
               action={
-                <button type="button" onClick={login} className="btn btn-primary">
+                <button type="button" onClick={() => loginWithGitHub()} className="btn btn-primary">
                   Sign in with GitHub
                 </button>
               }

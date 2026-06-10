@@ -1,72 +1,64 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { SwarmCanvas } from './SwarmCanvas';
-
-const DashboardHeroCanvas = lazy(() =>
-  import('./DashboardHeroCanvas').then((m) => ({ default: m.DashboardHeroCanvas })),
-);
-
-function HeroFallback() {
-  return (
-    <div className="hero-fallback hero-fallback--immersive" aria-hidden>
-      <span className="hero-fallback__ring hero-fallback__ring--1" />
-      <span className="hero-fallback__ring hero-fallback__ring--2" />
-      <span className="hero-fallback__core" />
-    </div>
-  );
-}
+import { ContributorCrowd } from './ContributorCrowd';
 
 type Props = {
-  eyebrow?: string;
-  title: ReactNode;
-  description?: string;
-  actions?: ReactNode;
+  title: string;
+  highlight: string;
+  description: string;
+  footnote?: string;
+  primaryAction?: ReactNode;
+  secondaryAction?: ReactNode;
+  meta?: ReactNode;
 };
 
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduced(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  return reduced;
-}
-
-export function DashboardHero({ eyebrow, title, description, actions }: Props) {
-  const reducedMotion = usePrefersReducedMotion();
-  const [sceneReady, setSceneReady] = useState(false);
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const id = requestAnimationFrame(() => setSceneReady(true));
-    return () => cancelAnimationFrame(id);
-  }, [reducedMotion]);
-
+export function DashboardHero({
+  title,
+  highlight,
+  description,
+  footnote,
+  primaryAction,
+  secondaryAction,
+  meta,
+}: Props) {
   return (
-    <section className={`hero-immersive animate-fade-up ${sceneReady ? 'hero-immersive--open' : ''}`}>
-      <div className="hero-immersive__stage" aria-hidden>
-        {!reducedMotion && <SwarmCanvas />}
-        {!reducedMotion ? (
-          <Suspense fallback={<HeroFallback />}>
-            {sceneReady && <DashboardHeroCanvas />}
-          </Suspense>
-        ) : (
-          <HeroFallback />
+    <section className="hero-mirofish">
+      <div className="hero-mirofish__ambient" aria-hidden>
+        <SwarmCanvas />
+      </div>
+
+      <div className="hero-mirofish__center">
+        <h1 className="hero-mirofish__title">
+          {title}{' '}
+          <span className="hero-mirofish__highlight">
+            {highlight}
+            <svg className="hero-mirofish__underline" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden>
+              <path
+                d="M2 8 C40 2, 80 10, 120 6 S180 4, 198 7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+        </h1>
+
+        <p className="hero-mirofish__subtitle">{description}</p>
+
+        {(primaryAction || secondaryAction) && (
+          <div className="hero-mirofish__ctas">
+            {primaryAction}
+            {secondaryAction}
+          </div>
         )}
+
+        {footnote && <p className="hero-mirofish__footnote">{footnote}</p>}
+
+        {meta && <div className="hero-mirofish__meta">{meta}</div>}
       </div>
 
-      <div className="hero-immersive__scrim" aria-hidden />
-
-      <div className="hero-immersive__content">
-        {eyebrow && <p className="hero-immersive__eyebrow">{eyebrow}</p>}
-        <h2 className="hero-immersive__title">{title}</h2>
-        {description && <p className="hero-immersive__description">{description}</p>}
-        {actions && <div className="hero-immersive__actions">{actions}</div>}
-      </div>
+      <ContributorCrowd />
     </section>
   );
 }
