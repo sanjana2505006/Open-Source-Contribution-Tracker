@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { AppFooter } from '../components/AppFooter';
 import { AppHeader } from '../components/AppHeader';
 
 export function Layout() {
@@ -6,6 +7,7 @@ export function Layout() {
     <div className="layout-full">
       <AppHeader />
       <Outlet />
+      <AppFooter />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type {
   AnalyticsBundle,
+  ContributionHeatmap,
   HealthResponse,
   IssueList,
   IssueRoleFilter,
@@ -102,6 +103,13 @@ export function fetchAnalytics(from?: string, to?: string): Promise<AnalyticsBun
   if (to) params.set('to', to);
   const qs = params.toString();
   return apiFetch<AnalyticsBundle>(`/api/v1/analytics${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchHeatmap(year?: number): Promise<ContributionHeatmap> {
+  const params = new URLSearchParams();
+  if (year !== undefined) params.set('year', String(year));
+  const qs = params.toString();
+  return apiFetch<ContributionHeatmap>(`/api/v1/analytics/heatmap${qs ? `?${qs}` : ''}`);
 }
 
 export type FetchPullRequestsOpts = {

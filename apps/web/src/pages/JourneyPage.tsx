@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { JourneyBundle } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
-import { EmptyState } from '../components/EmptyState';
+import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { MilestoneHighlight } from '../components/MilestoneHighlight';
@@ -46,18 +46,11 @@ export function JourneyPage() {
 
   if (!user) {
     return (
-      <main className="page-main">
-        <EmptyState
-          icon="timeline"
-          title="Sign in to see your journey"
-          description="A timeline of your first PR, first merge, and other open-source milestones."
-          action={
-            <button type="button" onClick={login} className="btn btn-primary">
-              Sign in with GitHub
-            </button>
-          }
-        />
-      </main>
+      <LoggedOutLanding
+        title="Your open source journey"
+        description="A visual timeline of milestones — first PR, first merge, and the moments that shaped your OSS story."
+        onLogin={login}
+      />
     );
   }
 

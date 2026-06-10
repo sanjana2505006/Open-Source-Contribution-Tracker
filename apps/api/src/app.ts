@@ -18,6 +18,7 @@ import { createJourneyRoutes } from './routes/journey.js';
 import { AuthService } from './services/authService.js';
 import { SyncService } from './services/syncService.js';
 import { AnalyticsService } from './services/analyticsService.js';
+import { HeatmapService } from './services/heatmapService.js';
 import { ExploreService } from './services/exploreService.js';
 import { JourneyService } from './services/journeyService.js';
 import { getPool } from './infrastructure/db/pool.js';
@@ -27,13 +28,14 @@ export function createApp(env: Env) {
   const auth = new AuthService(env, pool);
   const sync = new SyncService(env, pool);
   const analytics = new AnalyticsService(pool);
+  const heatmap = new HeatmapService(env, pool);
   const explore = new ExploreService(env, pool);
   const journey = new JourneyService(pool);
   const authRoutes = createAuthRoutes(auth, env);
   const userRoutes = createUserRoutes();
   const syncRoutes = createSyncRoutes(sync);
   const repositoryRoutes = createRepositoryRoutes(pool);
-  const analyticsRoutes = createAnalyticsRoutes(analytics);
+  const analyticsRoutes = createAnalyticsRoutes(analytics, heatmap);
   const exploreRoutes = createExploreRoutes(explore);
   const pullRequestRoutes = createPullRequestRoutes(pool);
   const issueRoutes = createIssueRoutes(pool);
@@ -77,6 +79,9 @@ export function createApp(env: Env) {
   });
   app.get('/api/v1/analytics', requireAuth, (req, res, next) => {
     analyticsRoutes.bundle(req, res).catch(next);
+  });
+  app.get('/api/v1/analytics/heatmap', requireAuth, (req, res, next) => {
+    analyticsRoutes.heatmap(req, res).catch(next);
   });
 
   app.get('/api/v1/explore/:username', requireAuth, (req, res, next) => {

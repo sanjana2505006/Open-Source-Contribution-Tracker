@@ -4,6 +4,7 @@ import type { HealthResponse, RepositorySummary, StatsSummary } from '@osct/shar
 import { useAuth } from '../app/AuthProvider';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { EmptyState } from '../components/EmptyState';
+import { LandingFeatures } from '../components/LandingFeatures';
 import { DashboardHero } from '../components/hero/DashboardHero';
 import { Panel } from '../components/Panel';
 import { RepoList } from '../components/RepoList';
@@ -110,7 +111,7 @@ export function OverviewPage() {
         footnote={
           user
             ? 'Move your mouse — the OSS squad shifts with you ✨'
-            : undefined
+            : 'Scroll to see what you get ↓'
         }
         primaryAction={
           user ? (
@@ -151,6 +152,8 @@ export function OverviewPage() {
           </ul>
         )}
       </DashboardHero>
+
+      {!user && <LandingFeatures onLogin={login} />}
 
       {user && (
       <main className="page-main">
@@ -195,7 +198,7 @@ export function OverviewPage() {
           )}
         </section>
 
-        {user && hasData && <AnalyticsPanel />}
+        {user && <AnalyticsPanel />}
 
         {user && repos.length > 0 && (
           <div className="mt-8 animate-fade-up">

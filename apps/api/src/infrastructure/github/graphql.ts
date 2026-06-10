@@ -1,5 +1,6 @@
 import { RateLimitError } from './api.js';
 import type { GitHubRepo } from './api.js';
+import type { HeatmapWeek } from '@osct/shared';
 
 type PageInfo = {
   hasNextPage: boolean;
@@ -49,6 +50,17 @@ export type GraphQLCommitContribution = {
 function contributionGithubId(repositoryId: number, occurredAt: string): number {
   const hex = `${repositoryId}-${occurredAt}`.replace(/[^a-f0-9]/gi, '').slice(0, 15);
   return Number.parseInt(hex.padEnd(15, '0'), 16);
+}
+
+function mapContributionLevel(count: number, level: number): 0 | 1 | 2 | 3 | 4 {
+  if (count <= 0) return 0;
+  if (Number.isFinite(level) && level >= 1 && level <= 4) {
+    return level as 1 | 2 | 3 | 4;
+  }
+  if (count <= 3) return 1;
+  if (count <= 6) return 2;
+  if (count <= 9) return 3;
+  return 4;
 }
 
 export function issueState(issue: GraphQLIssue): 'open' | 'closed' {
@@ -492,6 +504,94 @@ export class GitHubGraphQL {
     }
 
     return items;
+  }
+
+  async getContributionYears(login: string): Promise<number[]> {
+    const data = await this.query<{
+      user: {
+        contributionsCollection: {
+          contributionYears: number[];
+        };
+      } | null;
+    }>(
+      `query($login: String!) {
+        user(login: $login) {
+          contributionsCollection {
+            contributionYears
+          }
+        }
+      }`,
+      { login },
+    );
+
+    if (!data.user) {
+      throw new Error(`GitHub user "${login}" not found`);
+    }
+
+    return data.user.contributionsCollection.contributionYears;
+  }
+
+  async getContributionCalendar(
+    login: string,
+    year: number,
+  ): Promise<{ totalContributions: number; weeks: HeatmapWeek[] }> {
+    const from = `${year}-01-01T00:00:00.000Z`;
+    const to = `${year}-12-31T23:59:59.999Z`;
+
+    const data = await this.query<{
+      user: {
+        contributionsCollection: {
+          contributionCalendar: {
+            totalContributions: number;
+            weeks: Array<{
+              contributionDays: Array<{
+                date: string;
+                contributionCount: number;
+                contributionLevel: number;
+                color: string;
+              }>;
+            }>;
+          };
+        };
+      } | null;
+    }>(
+      `query($login: String!, $from: DateTime!, $to: DateTime!) {
+        user(login: $login) {
+          contributionsCollection(from: $from, to: $to) {
+            contributionCalendar {
+              totalContributions
+              weeks {
+                contributionDays {
+                  date
+                  contributionCount
+                  contributionLevel
+                  color
+                }
+              }
+            }
+          }
+        }
+      }`,
+      { login, from, to },
+    );
+
+    if (!data.user) {
+      throw new Error(`GitHub user "${login}" not found`);
+    }
+
+    const calendar = data.user.contributionsCollection.contributionCalendar;
+
+    return {
+      totalContributions: calendar.totalContributions,
+      weeks: calendar.weeks.map((week) => ({
+        days: week.contributionDays.map((day) => ({
+          date: day.date.slice(0, 10),
+          count: day.contributionCount,
+          level: mapContributionLevel(day.contributionCount, day.contributionLevel),
+          color: day.color,
+        })),
+      })),
+    };
   }
 
   async fetchUserProfile(login: string): Promise<{

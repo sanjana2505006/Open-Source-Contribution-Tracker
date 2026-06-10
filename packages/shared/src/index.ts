@@ -29,3 +29,8 @@ export type {
   IssueCounts,
 } from './types/issues.js';
 export type { MilestoneType, MilestoneItem, JourneyBundle } from './types/journey.js';
+export type {
+  HeatmapDay,
+  HeatmapWeek,
+  ContributionHeatmap,
+} from './types/heatmap.js';

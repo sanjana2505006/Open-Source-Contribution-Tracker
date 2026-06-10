@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ContributorProfile, WatchedContributor } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
+import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { ContributorDashboard } from '../components/ContributorDashboard';
 import { EmptyState } from '../components/EmptyState';
 import { PageHeader } from '../components/PageHeader';
@@ -95,18 +96,11 @@ export function ExplorePage() {
 
   if (!user) {
     return (
-      <main className="page-main">
-        <EmptyState
-          icon="search"
-          title="Sign in to explore contributors"
-          description="Look up any public GitHub profile to see where they contribute."
-          action={
-            <button type="button" onClick={login} className="btn btn-primary">
-              Sign in with GitHub
-            </button>
-          }
-        />
-      </main>
+      <LoggedOutLanding
+        title="Explore open source contributors"
+        description="Look up any public GitHub profile — repos, PRs, and activity charts aggregated in one view."
+        onLogin={login}
+      />
     );
   }
 

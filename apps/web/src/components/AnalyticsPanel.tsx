@@ -2,6 +2,7 @@ import type { AnalyticsBundle } from '@osct/shared';
 import { ActivityChart } from '../charts/ActivityChart';
 import { LanguageChart } from '../charts/LanguageChart';
 import { PullRequestChart } from '../charts/PullRequestChart';
+import { ContributionHeatmapPanel } from '../components/ContributionHeatmapPanel';
 import { Panel } from './Panel';
 import { DateRangeFilter, rangeToQuery, type RangePreset } from './DateRangeFilter';
 import { useEffect, useState } from 'react';
@@ -43,29 +44,35 @@ export function AnalyticsPanel() {
         <DateRangeFilter value={range} onChange={setRange} />
       </div>
 
-      {loading && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="panel skeleton h-64 lg:col-span-2" />
-          <div className="panel skeleton h-48" />
-          <div className="panel skeleton h-48" />
-        </div>
-      )}
+      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="contribution-heatmap-wrap">
+        <ContributionHeatmapPanel />
+      </div>
 
-      {!loading && data && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Activity" subtitle="Monthly PRs and commits" className="lg:col-span-2">
-            <ActivityChart data={data.timeline} />
-          </Panel>
+        {loading && (
+          <>
+            <div className="panel skeleton h-64 lg:col-span-2" />
+            <div className="panel skeleton h-48" />
+            <div className="panel skeleton h-48" />
+          </>
+        )}
 
-          <Panel title="Pull requests" subtitle="By status">
-            <PullRequestChart data={data.pullRequests} />
-          </Panel>
+        {!loading && data && (
+          <>
+            <Panel title="Activity" subtitle="Monthly PRs and commits" className="lg:col-span-2">
+              <ActivityChart data={data.timeline} />
+            </Panel>
 
-          <Panel title="Languages" subtitle="Top repos by activity">
-            <LanguageChart data={data.languages} />
-          </Panel>
-        </div>
-      )}
+            <Panel title="Pull requests" subtitle="By status">
+              <PullRequestChart data={data.pullRequests} />
+            </Panel>
+
+            <Panel title="Languages" subtitle="Top repos by activity">
+              <LanguageChart data={data.languages} />
+            </Panel>
+          </>
+        )}
+      </div>
     </section>
   );
 }

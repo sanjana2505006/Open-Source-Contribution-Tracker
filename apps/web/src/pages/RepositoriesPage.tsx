@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { PullRequestCounts, PullRequestItem, PullRequestStatusFilter, RepositorySummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
-import { EmptyState } from '../components/EmptyState';
+import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
 import { PullRequestStatusTabs } from '../components/PullRequestStatusTabs';
@@ -104,18 +104,11 @@ export function RepositoriesPage() {
 
   if (!user) {
     return (
-      <main className="page-main">
-        <EmptyState
-          icon="inbox"
-          title="Sign in to browse your PRs"
-          description="See every pull request you've opened — across all repos or filtered by repository."
-          action={
-            <button type="button" onClick={login} className="btn btn-primary">
-              Sign in with GitHub
-            </button>
-          }
-        />
-      </main>
+      <LoggedOutLanding
+        title="Your cross-repo PR inbox"
+        description="Browse every pull request you've opened — filter by repo, status, or scan your full inbox at once."
+        onLogin={login}
+      />
     );
   }
 

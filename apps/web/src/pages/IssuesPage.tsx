@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { IssueCounts, IssueItem, IssueRoleFilter, IssueStatusFilter } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
-import { EmptyState } from '../components/EmptyState';
+import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { IssueFilterTabs } from '../components/IssueFilterTabs';
 import { IssueTable } from '../components/IssueTable';
 import { PageHeader } from '../components/PageHeader';
@@ -79,18 +79,11 @@ export function IssuesPage() {
 
   if (!user) {
     return (
-      <main className="page-main">
-        <EmptyState
-          icon="inbox"
-          title="Sign in to see your issues"
-          description="Track issues assigned to you, ones you've commented on, and issues you've opened."
-          action={
-            <button type="button" onClick={login} className="btn btn-primary">
-              Sign in with GitHub
-            </button>
-          }
-        />
-      </main>
+      <LoggedOutLanding
+        title="Track your GitHub issues"
+        description="See issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
+        onLogin={login}
+      />
     );
   }
 
