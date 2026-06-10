@@ -10,6 +10,8 @@
     "dev:api": "npm run dev --workspace=@osct/api",
     "dev:web": "npm run dev --workspace=@osct/web",
     "build": "npm run build --workspace=@osct/shared && npm run build --workspace=@osct/api && npm run build --workspace=@osct/web",
+    "build:render": "npm install --include=dev && npm run build",
+    "start": "npm run start --workspace=@osct/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:migrate": "npm run db:migrate --workspace=@osct/api"
   },

@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import type { Env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { attachSession, requireAuth } from './middleware/auth.js';
@@ -97,6 +99,23 @@ export function createApp(env: Env) {
   app.get('/api/v1/journey', requireAuth, (req, res, next) => {
     journeyRoutes.bundle(req, res).catch(next);
   });
+
+  if (env.NODE_ENV === 'production') {
+    const webDist = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../web/dist',
+    );
+    app.use(express.static(webDist));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        next();
+        return;
+      }
+      res.sendFile(path.join(webDist, 'index.html'), (err) => {
+        if (err) next(err);
+      });
+    });
+  }
 
   app.use(errorHandler);
 
