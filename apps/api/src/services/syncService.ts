@@ -140,117 +140,137 @@ export class SyncService {
         }
       }
 
-      const events = await api.listUserEvents(user.username);
-      for (const event of events) {
-        if (event.type !== 'PushEvent' || !event.payload.commits?.length) continue;
-
-        const fullName = event.repo.name;
-        let repo = await this.repos.findByFullName(fullName);
-        if (!repo) {
-          try {
-            repo = await this.repos.upsert(await api.fetchRepo(fullName));
-            await this.userRepos.linkRepoOnly(userId, repo.id);
-          } catch {
-            continue;
-          }
-        }
-
-        for (const commit of event.payload.commits) {
-          await this.contributions.upsert({
-            userId,
-            repositoryId: repo.id,
-            githubId: commitGithubId(commit.sha),
-            type: 'commit',
-            title: commit.message.split('\n')[0] ?? commit.message,
-            state: null,
-            isMerged: null,
-            occurredAt: new Date(event.created_at),
-            htmlUrl: `https://github.com/${fullName}/commit/${commit.sha}`,
-          });
-        }
-      }
-
-      const commitContributions = await gql.listCommitContributions(user.username);
-      for (const contribution of commitContributions) {
-        try {
-          const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
-          await this.userRepos.linkRepoOnly(userId, repo.id);
-
-          await this.contributions.upsert({
-            userId,
-            repositoryId: repo.id,
-            githubId: contributionGithubId(
-              contribution.repository.databaseId,
-              contribution.occurredAt,
-            ),
-            type: 'commit',
-            title:
-              contribution.commitCount === 1
-                ? 'Commit'
-                : `${contribution.commitCount} commits`,
-            state: null,
-            isMerged: null,
-            occurredAt: new Date(contribution.occurredAt),
-            htmlUrl: `https://github.com${contribution.resourcePath}`,
-            commitCount: contribution.commitCount,
-          });
-        } catch {
-          reposFailed++;
-        }
-      }
-
       let issueCount = 0;
 
-      const assigned = await this.syncGraphqlIssues(
-        userId,
-        await gql.listAssignedIssues(user.username),
-        'assigned',
-        jobId,
-        reposSynced + prCount,
-      );
-      issueCount += assigned.count;
-      reposFailed += assigned.failed;
+      try {
+        const assigned = await this.syncGraphqlIssues(
+          userId,
+          await gql.listViewerAssignedIssues(),
+          'assigned',
+          jobId,
+          reposSynced + prCount,
+        );
+        issueCount += assigned.count;
+        reposFailed += assigned.failed;
+      } catch {
+        reposFailed++;
+      }
 
-      const authored = await this.syncSearchIssues(
-        userId,
-        api,
-        await api.searchIssuesAuthored(user.username),
-        'authored',
-        jobId,
-        reposSynced + prCount + issueCount,
-      );
-      issueCount += authored.count;
-      reposFailed += authored.failed;
+      try {
+        const authored = await this.syncSearchIssues(
+          userId,
+          api,
+          await api.searchIssuesAuthored(user.username),
+          'authored',
+          jobId,
+          reposSynced + prCount + issueCount,
+        );
+        issueCount += authored.count;
+        reposFailed += authored.failed;
+      } catch {
+        reposFailed++;
+      }
 
-      const commentedIssues = await api.searchIssuesCommented(user.username);
-      for (const issue of commentedIssues) {
-        try {
-          const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
+      try {
+        const commentedIssues = await api.searchIssuesCommented(user.username);
+        for (const issue of commentedIssues) {
+          try {
+            const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
+            let repo = await this.repos.findByFullName(fullName);
+            if (!repo) {
+              repo = await this.repos.upsert(await api.fetchRepo(fullName));
+            }
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+
+            await this.contributions.upsert({
+              userId,
+              repositoryId: repo.id,
+              githubId: issue.id,
+              type: 'issue',
+              title: issue.title,
+              state: issue.state,
+              isMerged: null,
+              occurredAt: new Date(issue.updated_at),
+              htmlUrl: issue.html_url,
+              roles: ['commented'],
+            });
+            issueCount++;
+            if (issueCount % 25 === 0) {
+              await this.jobs.updateProgress(jobId, reposSynced + prCount + issueCount, reposFailed);
+            }
+          } catch {
+            reposFailed++;
+          }
+        }
+      } catch {
+        reposFailed++;
+      }
+
+      try {
+        const events = await api.listUserEvents(user.username);
+        for (const event of events) {
+          if (event.type !== 'PushEvent' || !event.payload.commits?.length) continue;
+
+          const fullName = event.repo.name;
           let repo = await this.repos.findByFullName(fullName);
           if (!repo) {
-            repo = await this.repos.upsert(await api.fetchRepo(fullName));
+            try {
+              repo = await this.repos.upsert(await api.fetchRepo(fullName));
+              await this.userRepos.linkRepoOnly(userId, repo.id);
+            } catch {
+              continue;
+            }
           }
-          await this.userRepos.linkRepoOnly(userId, repo.id);
 
-          await this.contributions.upsert({
-            userId,
-            repositoryId: repo.id,
-            githubId: issue.id,
-            type: 'issue',
-            title: issue.title,
-            state: issue.state,
-            isMerged: null,
-            occurredAt: new Date(issue.updated_at),
-            htmlUrl: issue.html_url,
-            roles: ['commented'],
-          });
-          issueCount++;
-          if (issueCount % 25 === 0) {
-            await this.jobs.updateProgress(jobId, reposSynced + prCount + issueCount, reposFailed);
+          for (const commit of event.payload.commits) {
+            await this.contributions.upsert({
+              userId,
+              repositoryId: repo.id,
+              githubId: commitGithubId(commit.sha),
+              type: 'commit',
+              title: commit.message.split('\n')[0] ?? commit.message,
+              state: null,
+              isMerged: null,
+              occurredAt: new Date(event.created_at),
+              htmlUrl: `https://github.com/${fullName}/commit/${commit.sha}`,
+            });
           }
-        } catch {
-          reposFailed++;
         }
+      } catch {
+        reposFailed++;
+      }
+
+      try {
+        const commitContributions = await gql.listCommitContributions(user.username);
+        for (const contribution of commitContributions) {
+          try {
+            const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+
+            await this.contributions.upsert({
+              userId,
+              repositoryId: repo.id,
+              githubId: contributionGithubId(
+                contribution.repository.databaseId,
+                contribution.occurredAt,
+              ),
+              type: 'commit',
+              title:
+                contribution.commitCount === 1
+                  ? 'Commit'
+                  : `${contribution.commitCount} commits`,
+              state: null,
+              isMerged: null,
+              occurredAt: new Date(contribution.occurredAt),
+              htmlUrl: `https://github.com${contribution.resourcePath}`,
+              commitCount: contribution.commitCount,
+            });
+          } catch {
+            reposFailed++;
+          }
+        }
+      } catch {
+        reposFailed++;
       }
 
       await this.userRepos.rebuildFromContributions(userId);
@@ -283,6 +303,11 @@ export class SyncService {
 
     for (const issue of issues) {
       try {
+        if (!issue.databaseId) {
+          failed++;
+          continue;
+        }
+
         const repo = await this.repos.upsert(graphRepoToGitHubRepo(issue.repository));
         await this.userRepos.linkRepoOnly(userId, repo.id);
 

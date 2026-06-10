@@ -245,8 +245,73 @@ export class GitHubGraphQL {
     return items;
   }
 
+  private async listViewerIssuesFromConnection(
+    connection: 'assignedIssues',
+  ): Promise<GraphQLIssue[]> {
+    const items: GraphQLIssue[] = [];
+    let cursor: string | null = null;
+
+    const query = `
+      query($cursor: String) {
+        viewer {
+          ${connection}(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              databaseId
+              title
+              url
+              createdAt
+              updatedAt
+              state
+              repository {
+                databaseId
+                nameWithOwner
+                description
+                primaryLanguage { name }
+                stargazerCount
+                isFork
+                isPrivate
+                url
+                defaultBranchRef { name }
+                pushedAt
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    for (;;) {
+      type IssuePage = {
+        viewer: {
+          assignedIssues: {
+            pageInfo: PageInfo;
+            nodes: GraphQLIssue[];
+          };
+        } | null;
+      };
+
+      const data: IssuePage = await this.query<IssuePage>(query, { cursor });
+
+      if (!data.viewer) {
+        throw new Error('GitHub viewer not available');
+      }
+
+      items.push(...data.viewer[connection].nodes);
+
+      if (!data.viewer[connection].pageInfo.hasNextPage) break;
+      cursor = data.viewer[connection].pageInfo.endCursor;
+    }
+
+    return items;
+  }
+
   async listAssignedIssues(login: string): Promise<GraphQLIssue[]> {
     return this.listIssuesFromConnection(login, 'assignedIssues');
+  }
+
+  async listViewerAssignedIssues(): Promise<GraphQLIssue[]> {
+    return this.listViewerIssuesFromConnection('assignedIssues');
   }
 
   async listAuthoredIssues(login: string): Promise<GraphQLIssue[]> {
@@ -255,8 +320,35 @@ export class GitHubGraphQL {
 
   async listCommitContributions(login: string): Promise<GraphQLCommitContribution[]> {
     const items: GraphQLCommitContribution[] = [];
-    const from = '2008-01-01T00:00:00Z';
-    const to = new Date().toISOString();
+    const rangeEnd = new Date();
+    let rangeStart = new Date('2008-01-01T00:00:00Z');
+
+    while (rangeStart < rangeEnd) {
+      const chunkEnd = new Date(rangeStart);
+      chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 364);
+      const to = chunkEnd < rangeEnd ? chunkEnd : rangeEnd;
+
+      items.push(
+        ...(await this.listCommitContributionsInRange(
+          login,
+          rangeStart.toISOString(),
+          to.toISOString(),
+        )),
+      );
+
+      rangeStart = new Date(to);
+      rangeStart.setUTCDate(rangeStart.getUTCDate() + 1);
+    }
+
+    return items;
+  }
+
+  private async listCommitContributionsInRange(
+    login: string,
+    from: string,
+    to: string,
+  ): Promise<GraphQLCommitContribution[]> {
+    const items: GraphQLCommitContribution[] = [];
     let repoCursor: string | null = null;
 
     const query = `

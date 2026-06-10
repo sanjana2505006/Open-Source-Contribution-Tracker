@@ -22,7 +22,7 @@ function parseRole(value: string | null): IssueRoleFilter {
   if (value === 'assigned' || value === 'commented' || value === 'authored' || value === 'all') {
     return value;
   }
-  return 'assigned';
+  return 'all';
 }
 
 function parseStatus(value: string | null): IssueStatusFilter {
