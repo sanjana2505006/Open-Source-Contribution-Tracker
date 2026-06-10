@@ -187,8 +187,8 @@ export function OverviewPage() {
               title="Repositories"
               subtitle={
                 stats
-                  ? `${stats.repositories} total · showing ${repos.length}`
-                  : `${repos.length} repositories`
+                  ? `${stats.repositories} total · click a repo to see your PRs`
+                  : 'Click a repo to see your PRs'
               }
             >
               <RepoList repos={repos} />

@@ -1,0 +1,44 @@
+import type { Request, Response } from 'express';
+import type pg from 'pg';
+import type { PullRequestList } from '@osct/shared';
+import { AppError } from '../middleware/errorHandler.js';
+import { ContributionRepository } from '../repositories/contributionRepository.js';
+
+export function createPullRequestRoutes(db: pg.Pool) {
+  const contributions = new ContributionRepository(db);
+
+  return {
+    async list(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const repo =
+        typeof req.query.repo === 'string' ? req.query.repo.trim() : undefined;
+      const limit =
+        typeof req.query.limit === 'string' ? Number(req.query.limit) : 100;
+      const offset =
+        typeof req.query.offset === 'string' ? Number(req.query.offset) : 0;
+
+      const { items, total } = await contributions.listPullRequests(req.user.id, {
+        repo,
+        limit: Number.isFinite(limit) ? limit : 100,
+        offset: Number.isFinite(offset) ? offset : 0,
+      });
+
+      const data: PullRequestList = {
+        repository: repo ?? null,
+        total,
+        items: items.map((row) => ({
+          id: row.id,
+          title: row.title ?? 'Untitled PR',
+          state: row.state as PullRequestList['items'][0]['state'],
+          isMerged: row.is_merged ?? false,
+          occurredAt: row.occurred_at.toISOString(),
+          htmlUrl: row.html_url,
+          repositoryFullName: row.full_name,
+        })),
+      };
+
+      res.json({ data, meta: { total } });
+    },
+  };
+}

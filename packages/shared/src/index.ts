@@ -14,3 +14,4 @@ export type {
   AnalyticsBundle,
 } from './types/analytics.js';
 export type { ContributorProfile, WatchedContributor } from './types/explore.js';
+export type { PullRequestItem, PullRequestList } from './types/contributions.js';

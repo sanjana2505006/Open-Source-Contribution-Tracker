@@ -9,6 +9,7 @@ import { createAuthRoutes, createUserRoutes } from './routes/auth.js';
 import { createSyncRoutes } from './routes/sync.js';
 import { createRepositoryRoutes } from './routes/repositories.js';
 import { createExploreRoutes } from './routes/explore.js';
+import { createPullRequestRoutes } from './routes/pullRequests.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
 import { AuthService } from './services/authService.js';
 import { SyncService } from './services/syncService.js';
@@ -28,6 +29,7 @@ export function createApp(env: Env) {
   const repositoryRoutes = createRepositoryRoutes(pool);
   const analyticsRoutes = createAnalyticsRoutes(analytics);
   const exploreRoutes = createExploreRoutes(explore);
+  const pullRequestRoutes = createPullRequestRoutes(pool);
 
   const app = express();
 
@@ -83,6 +85,10 @@ export function createApp(env: Env) {
   });
   app.post('/api/v1/watchlist/:username/refresh', requireAuth, (req, res, next) => {
     exploreRoutes.refresh(req, res).catch(next);
+  });
+
+  app.get('/api/v1/pull-requests', requireAuth, (req, res, next) => {
+    pullRequestRoutes.list(req, res).catch(next);
   });
 
   app.use(errorHandler);

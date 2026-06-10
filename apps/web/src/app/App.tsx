@@ -3,6 +3,7 @@ import { AuthProvider } from './AuthProvider';
 import { Layout } from './Layout';
 import { OverviewPage } from '../pages/OverviewPage';
 import { ExplorePage } from '../pages/ExplorePage';
+import { RepositoriesPage } from '../pages/RepositoriesPage';
 
 export function App() {
   return (
@@ -12,6 +13,7 @@ export function App() {
           <Route element={<Layout />}>
             <Route index element={<OverviewPage />} />
             <Route path="explore" element={<ExplorePage />} />
+            <Route path="repos" element={<RepositoriesPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

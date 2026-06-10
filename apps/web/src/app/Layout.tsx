@@ -4,7 +4,7 @@ import { UserMenu } from '../components/UserMenu';
 const links = [
   { to: '/', label: 'Overview', end: true, disabled: false, icon: 'grid' as const },
   { to: '/explore', label: 'Explore', end: false, disabled: false, icon: 'search' as const },
-  { to: '/repos', label: 'Repositories', end: false, disabled: true, icon: 'repo' as const },
+  { to: '/repos', label: 'My PRs', end: false, disabled: false, icon: 'repo' as const },
   { to: '/journey', label: 'Journey', end: false, disabled: true, icon: 'timeline' as const },
 ];
 

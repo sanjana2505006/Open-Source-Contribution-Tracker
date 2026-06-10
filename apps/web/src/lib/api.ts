@@ -1,6 +1,7 @@
 import type {
   AnalyticsBundle,
   HealthResponse,
+  PullRequestList,
   RepositorySummary,
   StatsSummary,
   SyncStatus,
@@ -96,4 +97,9 @@ export function fetchAnalytics(from?: string, to?: string): Promise<AnalyticsBun
   if (to) params.set('to', to);
   const qs = params.toString();
   return apiFetch<AnalyticsBundle>(`/api/v1/analytics${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchPullRequests(repo: string): Promise<PullRequestList> {
+  const params = new URLSearchParams({ repo, limit: '500' });
+  return apiFetch<PullRequestList>(`/api/v1/pull-requests?${params}`);
 }

@@ -55,4 +55,59 @@ export class ContributionRepository {
     );
     return Number(result.rows[0]?.count ?? 0);
   }
+
+  async listPullRequests(
+    userId: string,
+    opts: { repo?: string; limit?: number; offset?: number },
+  ): Promise<{ items: Array<{
+    id: string;
+    title: string;
+    state: string | null;
+    is_merged: boolean | null;
+    occurred_at: Date;
+    html_url: string;
+    full_name: string;
+  }>; total: number }> {
+    const limit = Math.min(opts.limit ?? 100, 500);
+    const offset = opts.offset ?? 0;
+    const params: unknown[] = [userId];
+    let repoFilter = '';
+
+    if (opts.repo) {
+      params.push(opts.repo.toLowerCase());
+      repoFilter = ` AND LOWER(r.full_name) = $${params.length}`;
+    }
+
+    const countResult = await this.db.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM contributions c
+       JOIN repositories r ON r.id = c.repository_id
+       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}`,
+      params,
+    );
+
+    params.push(limit, offset);
+    const result = await this.db.query<{
+      id: string;
+      title: string;
+      state: string | null;
+      is_merged: boolean | null;
+      occurred_at: Date;
+      html_url: string;
+      full_name: string;
+    }>(
+      `SELECT c.id, c.title, c.state, c.is_merged, c.occurred_at, c.html_url, r.full_name
+       FROM contributions c
+       JOIN repositories r ON r.id = c.repository_id
+       WHERE c.user_id = $1 AND c.type = 'pull_request'${repoFilter}
+       ORDER BY c.occurred_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+
+    return {
+      items: result.rows,
+      total: Number(countResult.rows[0]?.count ?? 0),
+    };
+  }
 }
