@@ -13,15 +13,15 @@ const chartColorsDark = {
 };
 
 const chartColorsLight = {
-  accent: '#0969da',
-  commit: '#8250df',
-  pr: '#0969da',
-  open: '#0969da',
-  closed: '#656d76',
-  merged: '#1a7f37',
-  muted: '#656d76',
-  grid: '#d8dee4',
-  text: '#656d76',
+  accent: '#0870d3',
+  commit: '#7c3aed',
+  pr: '#0870d3',
+  open: '#0870d3',
+  closed: '#5c6570',
+  merged: '#116329',
+  muted: '#5c6570',
+  grid: '#d8dee8',
+  text: '#5c6570',
 };
 
 export type ChartColors = {

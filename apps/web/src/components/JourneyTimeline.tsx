@@ -62,7 +62,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
       {milestones.map((milestone, index) => {
         const isLast = index === milestones.length - 1;
         const content = (
-          <div className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/50 px-4 py-3.5 transition-colors hover:border-[var(--color-border-strong)] hover:bg-[var(--color-panel-hover)]">
+          <div className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)]/60 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-md">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium">{milestone.title}</p>
@@ -100,7 +100,7 @@ export function JourneyTimeline({ milestones, loading }: Props) {
               />
             )}
             <span
-              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-semibold uppercase tracking-wide ${typeAccent(milestone.type)}`}
+              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-semibold uppercase tracking-wide shadow-sm ${typeAccent(milestone.type)}`}
             >
               {typeLabel(milestone.type)}
             </span>

@@ -18,7 +18,7 @@ export function StatCard({ label, value, accent, icon, delay = '' }: StatCardPro
         style={{ background: accent }}
       />
       <div
-        className="absolute inset-y-0 left-0 w-1 rounded-l-[10px]"
+        className="absolute inset-y-0 left-0 w-1 rounded-l-[12px]"
         style={{ background: accent }}
       />
       <div className="relative flex items-start justify-between gap-3 pl-2">
@@ -32,7 +32,7 @@ export function StatCard({ label, value, accent, icon, delay = '' }: StatCardPro
           </p>
         </div>
         <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-white/5"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-[var(--color-border)]"
           style={{ background: `${accent}14`, color: accent }}
         >
           {icon}

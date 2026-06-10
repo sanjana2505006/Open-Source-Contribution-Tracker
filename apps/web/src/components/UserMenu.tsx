@@ -13,7 +13,7 @@ export function UserMenu() {
 
   if (loading) {
     return (
-      <div className="border-t border-[var(--color-border)] p-3">
+      <div className="relative z-10 border-t border-[var(--color-border)] p-3">
         <div className="skeleton h-11 w-full rounded-lg" />
       </div>
     );
@@ -21,7 +21,7 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <div className="border-t border-[var(--color-border)] p-3">
+      <div className="relative z-10 border-t border-[var(--color-border)] p-3">
         <button type="button" onClick={login} className="btn btn-secondary w-full">
           <GitHubIcon />
           Sign in with GitHub
@@ -31,7 +31,7 @@ export function UserMenu() {
   }
 
   return (
-    <div className="border-t border-[var(--color-border)] p-3">
+    <div className="relative z-10 border-t border-[var(--color-border)] p-3">
       <div className="flex items-center gap-2.5 rounded-lg bg-[var(--color-surface)]/80 px-2.5 py-2 ring-1 ring-[var(--color-border)]">
         {user.avatarUrl ? (
           <img

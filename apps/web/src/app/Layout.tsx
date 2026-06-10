@@ -43,7 +43,7 @@ export function Layout() {
     <div className="flex min-h-screen">
       <aside className="sidebar">
         <div className="border-b border-[var(--color-border)] px-4 py-5">
-          <div className="flex items-center gap-3">
+          <div className="relative z-10 flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-accent-glow)] ring-1 ring-[var(--color-accent)]/25">
               <svg className="h-4 w-4 text-[var(--color-accent)]" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
@@ -56,7 +56,7 @@ export function Layout() {
           </div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 p-2.5">
+        <nav className="sidebar__nav flex flex-col gap-1 p-2.5">
           <p className="eyebrow px-3 pb-1 pt-2">Navigate</p>
           {links.map((link) => (
             <NavLink
@@ -65,9 +65,9 @@ export function Layout() {
               end={link.end}
               className={({ isActive }) =>
                 [
-                  'relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                  'relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-200',
                   isActive
-                    ? 'bg-[var(--color-elevated)] font-medium text-[var(--color-text)] shadow-sm'
+                    ? 'nav-link-active font-medium text-[var(--color-text)]'
                     : 'text-[var(--color-muted)] hover:bg-[var(--color-panel-hover)] hover:text-[var(--color-text)]',
                 ].join(' ')
               }
@@ -83,11 +83,12 @@ export function Layout() {
           ))}
         </nav>
 
-        <div className="mt-auto border-t border-[var(--color-border)] py-2">
-          <ThemeToggle />
+        <div className="sidebar__footer">
+          <div className="px-3 py-3">
+            <ThemeToggle />
+          </div>
+          <UserMenu />
         </div>
-
-        <UserMenu />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
