@@ -1,6 +1,6 @@
 export type IssueRole = 'assigned' | 'authored' | 'commented';
 
-export type IssueRoleFilter = 'all' | IssueRole;
+export type IssueRoleFilter = 'all' | IssueRole | 'stuck';
 
 export type IssueStatusFilter = 'all' | 'open' | 'closed';
 
@@ -12,6 +12,8 @@ export type IssueItem = {
   htmlUrl: string;
   repositoryFullName: string;
   roles: IssueRole[];
+  stuckDays?: number;
+  stuckReason?: string;
 };
 
 export type IssueCounts = {
@@ -21,6 +23,7 @@ export type IssueCounts = {
   assigned: number;
   authored: number;
   commented: number;
+  stuck: number;
 };
 
 export type IssueList = {

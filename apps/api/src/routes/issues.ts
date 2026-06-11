@@ -1,11 +1,18 @@
 import type { Request, Response } from 'express';
 import type { IssueList, IssueRole, IssueRoleFilter, IssueStatusFilter } from '@osct/shared';
 import type pg from 'pg';
+import { stuckDaysSince, stuckReason } from '../lib/stuckIssues.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { ContributionRepository } from '../repositories/contributionRepository.js';
 
 function parseRole(value: unknown): IssueRoleFilter {
-  if (value === 'assigned' || value === 'commented' || value === 'authored' || value === 'all') {
+  if (
+    value === 'assigned' ||
+    value === 'commented' ||
+    value === 'authored' ||
+    value === 'stuck' ||
+    value === 'all'
+  ) {
     return value;
   }
   return 'all';
@@ -38,9 +45,11 @@ export function createIssueRoutes(db: pg.Pool) {
       const role = parseRole(req.query.role);
       const status = parseStatus(req.query.status);
       const sort =
-        req.query.sort === 'oldest' || req.query.sort === 'newest'
-          ? req.query.sort
-          : 'newest';
+        role === 'stuck'
+          ? 'stuck'
+          : req.query.sort === 'oldest' || req.query.sort === 'newest'
+            ? req.query.sort
+            : 'newest';
       const limit =
         typeof req.query.limit === 'string' ? Number(req.query.limit) : 100;
       const offset =
@@ -50,7 +59,7 @@ export function createIssueRoutes(db: pg.Pool) {
         contributions.listIssues(req.user.id, {
           repo,
           role: role === 'all' ? undefined : role,
-          status: status === 'all' ? undefined : status,
+          status: role === 'stuck' ? undefined : status === 'all' ? undefined : status,
           sort,
           limit: Number.isFinite(limit) ? limit : 100,
           offset: Number.isFinite(offset) ? offset : 0,
@@ -64,15 +73,25 @@ export function createIssueRoutes(db: pg.Pool) {
         status,
         counts,
         total,
-        items: items.map((row) => ({
-          id: row.id,
-          title: row.title ?? 'Untitled issue',
-          state: row.state as IssueList['items'][0]['state'],
-          occurredAt: row.occurred_at.toISOString(),
-          htmlUrl: row.html_url,
-          repositoryFullName: row.full_name,
-          roles: parseRoles(row.raw_metadata),
-        })),
+        items: items.map((row) => {
+          const roles = parseRoles(row.raw_metadata);
+          const item: IssueList['items'][0] = {
+            id: row.id,
+            title: row.title ?? 'Untitled issue',
+            state: row.state as IssueList['items'][0]['state'],
+            occurredAt: row.occurred_at.toISOString(),
+            htmlUrl: row.html_url,
+            repositoryFullName: row.full_name,
+            roles,
+          };
+
+          if (role === 'stuck') {
+            item.stuckDays = stuckDaysSince(row.raw_metadata, row.occurred_at);
+            item.stuckReason = stuckReason(roles);
+          }
+
+          return item;
+        }),
       };
 
       res.json({ data, meta: { total } });

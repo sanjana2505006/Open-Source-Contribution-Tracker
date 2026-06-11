@@ -190,9 +190,11 @@ export class SyncService {
               title: issue.title,
               state: issue.state,
               isMerged: null,
-              occurredAt: new Date(issue.updated_at),
+              occurredAt: new Date(issue.created_at),
               htmlUrl: issue.html_url,
               roles: ['commented'],
+              createdAt: new Date(issue.created_at),
+              updatedAt: new Date(issue.updated_at),
             });
             issueCount++;
             if (issueCount % 25 === 0) {
@@ -322,6 +324,8 @@ export class SyncService {
           occurredAt: new Date(issue.createdAt),
           htmlUrl: issue.url,
           roles: [role],
+          createdAt: new Date(issue.createdAt),
+          updatedAt: new Date(issue.updatedAt),
         });
         count++;
         if (count % 25 === 0) {
@@ -366,6 +370,8 @@ export class SyncService {
           occurredAt: new Date(issue.created_at),
           htmlUrl: issue.html_url,
           roles: [role],
+          createdAt: new Date(issue.created_at),
+          updatedAt: new Date(issue.updated_at),
         });
         count++;
         if (count % 25 === 0) {

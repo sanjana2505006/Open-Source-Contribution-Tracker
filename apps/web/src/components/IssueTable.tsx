@@ -26,6 +26,7 @@ type Props = {
   issues: IssueItem[];
   loading?: boolean;
   showRepository?: boolean;
+  variant?: 'default' | 'stuck';
   emptyMessage?: string;
 };
 
@@ -33,6 +34,7 @@ export function IssueTable({
   issues,
   loading,
   showRepository = false,
+  variant = 'default',
   emptyMessage = 'No issues found. Sync from GitHub to pull assigned, commented, and opened issues.',
 }: Props) {
   if (loading) {
@@ -51,6 +53,8 @@ export function IssueTable({
     );
   }
 
+  const isStuck = variant === 'stuck';
+
   return (
     <ul className="divide-y divide-[var(--color-border)]">
       {issues.map((issue) => (
@@ -68,27 +72,38 @@ export function IssueTable({
               </span>
             ))}
 
+            {isStuck && issue.stuckDays != null && (
+              <span className="badge badge-stale">{issue.stuckDays}d stuck</span>
+            )}
+
             {showRepository && (
               <span className="shrink-0 rounded-md bg-[var(--color-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
                 {issue.repositoryFullName}
               </span>
             )}
 
-            <a
-              href={issue.htmlUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="min-w-0 flex-1 text-sm transition-colors group-hover:text-[var(--color-accent)]"
-            >
-              {issue.title}
-            </a>
+            <div className="min-w-0 flex-1">
+              <a
+                href={issue.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-sm transition-colors group-hover:text-[var(--color-accent)]"
+              >
+                {issue.title}
+              </a>
+              {isStuck && issue.stuckReason && (
+                <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">{issue.stuckReason}</p>
+              )}
+            </div>
 
-            <time
-              dateTime={issue.occurredAt}
-              className="tabular-nums shrink-0 text-[11px] font-medium text-[var(--color-muted)]"
-            >
-              {new Date(issue.occurredAt).toLocaleDateString()}
-            </time>
+            {!isStuck && (
+              <time
+                dateTime={issue.occurredAt}
+                className="tabular-nums shrink-0 text-[11px] font-medium text-[var(--color-muted)]"
+              >
+                {new Date(issue.occurredAt).toLocaleDateString()}
+              </time>
+            )}
           </div>
         </li>
       ))}

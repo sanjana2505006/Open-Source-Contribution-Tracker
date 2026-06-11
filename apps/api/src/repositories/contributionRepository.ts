@@ -11,6 +11,8 @@ export type UpsertContributionInput = {
   occurredAt: Date;
   htmlUrl: string;
   roles?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
   commitCount?: number;
 };
 
@@ -21,7 +23,15 @@ export class ContributionRepository {
     let metadata: string | null = null;
 
     if (input.type === 'issue' && input.roles?.length) {
-      metadata = JSON.stringify({ roles: input.roles });
+      const meta: Record<string, unknown> = { roles: input.roles };
+      if (input.createdAt) meta.createdAt = input.createdAt.toISOString();
+      if (input.updatedAt) meta.updatedAt = input.updatedAt.toISOString();
+      metadata = JSON.stringify(meta);
+    } else if (input.type === 'issue') {
+      const meta: Record<string, unknown> = {};
+      if (input.createdAt) meta.createdAt = input.createdAt.toISOString();
+      if (input.updatedAt) meta.updatedAt = input.updatedAt.toISOString();
+      if (Object.keys(meta).length > 0) metadata = JSON.stringify(meta);
     } else if (input.type === 'commit' && input.commitCount && input.commitCount > 1) {
       metadata = JSON.stringify({ commitCount: input.commitCount });
     }
@@ -47,6 +57,16 @@ export class ContributionRepository {
                  COALESCE(contributions.raw_metadata->'roles', '[]'::jsonb)
                  || COALESCE(EXCLUDED.raw_metadata->'roles', '[]'::jsonb)
                ) AS value
+             ),
+             'createdAt',
+             COALESCE(
+               contributions.raw_metadata->>'createdAt',
+               EXCLUDED.raw_metadata->>'createdAt'
+             ),
+             'updatedAt',
+             COALESCE(
+               EXCLUDED.raw_metadata->>'updatedAt',
+               contributions.raw_metadata->>'updatedAt'
              )
            )
          END`,
@@ -218,10 +238,26 @@ export class ContributionRepository {
     return ` AND COALESCE(c.raw_metadata->'roles', '[]'::jsonb) @> to_jsonb(ARRAY[$${roleParamIndex}]::text[])`;
   }
 
+  private stuckFilterSql(): string {
+    return ` AND c.state = 'open'
+      AND NOW() - COALESCE(
+        NULLIF(TRIM(c.raw_metadata->>'updatedAt'), '')::timestamptz,
+        c.occurred_at
+      ) >= INTERVAL '30 days'`;
+  }
+
   async countIssues(
     userId: string,
     repo?: string,
-  ): Promise<{ all: number; open: number; closed: number; assigned: number; authored: number; commented: number }> {
+  ): Promise<{
+    all: number;
+    open: number;
+    closed: number;
+    assigned: number;
+    authored: number;
+    commented: number;
+    stuck: number;
+  }> {
     const params: unknown[] = [userId];
     let repoFilter = '';
 
@@ -237,6 +273,7 @@ export class ContributionRepository {
       assigned: string;
       authored: string;
       commented: string;
+      stuck: string;
     }>(
       `SELECT
          COUNT(*)::text AS all,
@@ -250,7 +287,14 @@ export class ContributionRepository {
          )::text AS authored,
          COUNT(*) FILTER (
            WHERE COALESCE(c.raw_metadata->'roles', '[]'::jsonb) @> '["commented"]'::jsonb
-         )::text AS commented
+         )::text AS commented,
+         COUNT(*) FILTER (
+           WHERE c.state = 'open'
+             AND NOW() - COALESCE(
+               NULLIF(TRIM(c.raw_metadata->>'updatedAt'), '')::timestamptz,
+               c.occurred_at
+             ) >= INTERVAL '30 days'
+         )::text AS stuck
        FROM contributions c
        JOIN repositories r ON r.id = c.repository_id
        WHERE c.user_id = $1 AND c.type = 'issue'${repoFilter}`,
@@ -265,6 +309,7 @@ export class ContributionRepository {
       assigned: Number(row?.assigned ?? 0),
       authored: Number(row?.authored ?? 0),
       commented: Number(row?.commented ?? 0),
+      stuck: Number(row?.stuck ?? 0),
     };
   }
 
@@ -274,7 +319,7 @@ export class ContributionRepository {
       repo?: string;
       role?: string;
       status?: string;
-      sort?: 'newest' | 'oldest';
+      sort?: 'newest' | 'oldest' | 'stuck';
       limit?: number;
       offset?: number;
     },
@@ -286,7 +331,7 @@ export class ContributionRepository {
       occurred_at: Date;
       html_url: string;
       full_name: string;
-      raw_metadata: { roles?: string[] } | null;
+      raw_metadata: { roles?: string[]; createdAt?: string; updatedAt?: string } | null;
     }>;
     total: number;
   }> {
@@ -295,26 +340,35 @@ export class ContributionRepository {
     const params: unknown[] = [userId];
     let repoFilter = '';
     let roleFilter = '';
+    let stuckFilter = '';
 
     if (opts.repo) {
       params.push(opts.repo.toLowerCase());
       repoFilter = ` AND LOWER(r.full_name) = $${params.length}`;
     }
 
-    if (opts.role && opts.role !== 'all') {
+    if (opts.role === 'stuck') {
+      stuckFilter = this.stuckFilterSql();
+    } else if (opts.role && opts.role !== 'all') {
       params.push(opts.role);
       roleFilter = this.issueRoleFilterSql(params.length);
     }
 
-    const statusFilter = this.issueStatusFilterSql(opts.status);
+    const statusFilter =
+      opts.role === 'stuck' ? '' : this.issueStatusFilterSql(opts.status);
+
     const order =
-      opts.sort === 'oldest' ? 'c.occurred_at ASC, c.id ASC' : 'c.occurred_at DESC, c.id DESC';
+      opts.role === 'stuck' || opts.sort === 'stuck'
+        ? `COALESCE(NULLIF(TRIM(c.raw_metadata->>'updatedAt'), '')::timestamptz, c.occurred_at) ASC, c.id ASC`
+        : opts.sort === 'oldest'
+          ? 'c.occurred_at ASC, c.id ASC'
+          : 'c.occurred_at DESC, c.id DESC';
 
     const countResult = await this.db.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
        FROM contributions c
        JOIN repositories r ON r.id = c.repository_id
-       WHERE c.user_id = $1 AND c.type = 'issue'${repoFilter}${roleFilter}${statusFilter}`,
+       WHERE c.user_id = $1 AND c.type = 'issue'${repoFilter}${roleFilter}${stuckFilter}${statusFilter}`,
       params,
     );
 
@@ -326,12 +380,12 @@ export class ContributionRepository {
       occurred_at: Date;
       html_url: string;
       full_name: string;
-      raw_metadata: { roles?: string[] } | null;
+      raw_metadata: { roles?: string[]; createdAt?: string; updatedAt?: string } | null;
     }>(
       `SELECT c.id, c.title, c.state, c.occurred_at, c.html_url, r.full_name, c.raw_metadata
        FROM contributions c
        JOIN repositories r ON r.id = c.repository_id
-       WHERE c.user_id = $1 AND c.type = 'issue'${repoFilter}${roleFilter}${statusFilter}
+       WHERE c.user_id = $1 AND c.type = 'issue'${repoFilter}${roleFilter}${stuckFilter}${statusFilter}
        ORDER BY ${order}
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,

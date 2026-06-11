@@ -16,10 +16,17 @@ const DEFAULT_COUNTS: IssueCounts = {
   assigned: 0,
   authored: 0,
   commented: 0,
+  stuck: 0,
 };
 
 function parseRole(value: string | null): IssueRoleFilter {
-  if (value === 'assigned' || value === 'commented' || value === 'authored' || value === 'all') {
+  if (
+    value === 'assigned' ||
+    value === 'commented' ||
+    value === 'authored' ||
+    value === 'stuck' ||
+    value === 'all'
+  ) {
     return value;
   }
   return 'all';
@@ -68,6 +75,9 @@ export function IssuesPage() {
   function setRole(next: IssueRoleFilter) {
     const params = new URLSearchParams(searchParams);
     params.set('role', next);
+    if (next === 'stuck') {
+      params.delete('status');
+    }
     setSearchParams(params);
   }
 
@@ -88,20 +98,32 @@ export function IssuesPage() {
   }
 
   const emptyMessage =
-    role === 'assigned'
-      ? 'No assigned issues yet. When a maintainer assigns you work, it will show up here after sync.'
-      : role === 'commented'
-        ? 'No commented issues yet. Issues where you left a comment (including "please assign me") appear here.'
-        : role === 'authored'
-          ? 'No opened issues yet.'
-          : 'No issues match this filter. Try syncing from GitHub on Overview.';
+    role === 'stuck'
+      ? 'Nothing stuck right now — open issues with no activity for 30+ days show up here after sync.'
+      : role === 'assigned'
+        ? 'No assigned issues yet. When a maintainer assigns you work, it will show up here after sync.'
+        : role === 'commented'
+          ? 'No commented issues yet. Issues where you left a comment (including "please assign me") appear here.'
+          : role === 'authored'
+            ? 'No opened issues yet.'
+            : 'No issues match this filter. Try syncing from GitHub on Overview.';
+
+  const panelTitle = role === 'stuck' ? 'Stuck issues' : 'Issue inbox';
+  const panelSubtitle =
+    role === 'stuck'
+      ? `${total} open issue${total === 1 ? '' : 's'} with no activity for 30+ days`
+      : `${total} issue${total === 1 ? '' : 's'} · ${counts.assigned} assigned · ${counts.commented} commented`;
 
   return (
     <>
       <PageHeader
         eyebrow="Issues"
         title="My Issues"
-        description="Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
+        description={
+          role === 'stuck'
+            ? 'Issues you commented on, were assigned, or opened — but nothing has moved in 30+ days.'
+            : "Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
+        }
       />
 
       <main className="page-main space-y-3">
@@ -113,15 +135,12 @@ export function IssuesPage() {
           onStatusChange={setStatus}
         />
 
-        <Panel
-          flush
-          title="Issue inbox"
-          subtitle={`${total} issue${total === 1 ? '' : 's'} · ${counts.assigned} assigned · ${counts.commented} commented`}
-        >
+        <Panel flush title={panelTitle} subtitle={panelSubtitle}>
           <IssueTable
             issues={issues}
             loading={loading}
             showRepository
+            variant={role === 'stuck' ? 'stuck' : 'default'}
             emptyMessage={emptyMessage}
           />
         </Panel>
