@@ -8,6 +8,8 @@ import { RepositoriesPage } from '../pages/RepositoriesPage';
 import { IssuesPage } from '../pages/IssuesPage';
 import { JourneyPage } from '../pages/JourneyPage';
 import { AdminPage } from '../pages/AdminPage';
+import { PrivacyPage } from '../pages/PrivacyPage';
+import { SecurityPage } from '../pages/SecurityPage';
 
 export function App() {
   return (
@@ -22,6 +24,8 @@ export function App() {
               <Route path="issues" element={<IssuesPage />} />
               <Route path="journey" element={<JourneyPage />} />
               <Route path="admin" element={<AdminPage />} />
+              <Route path="privacy" element={<PrivacyPage />} />
+              <Route path="security" element={<SecurityPage />} />
             </Route>
           </Routes>
         </BrowserRouter>
