@@ -47,6 +47,16 @@ export function AppHeader() {
               {link.label}
             </NavLink>
           ))}
+          {user.isAdmin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                ['app-header__link', isActive && 'app-header__link--active'].filter(Boolean).join(' ')
+              }
+            >
+              Admin
+            </NavLink>
+          )}
         </nav>
       )}
 

@@ -6,6 +6,10 @@ import { fileURLToPath } from 'url';
 import type { Env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { attachSession, requireAuth } from './middleware/auth.js';
+import { requireAdmin } from './middleware/admin.js';
+import { createActivityMiddleware } from './middleware/activity.js';
+import { SessionRepository } from './repositories/sessionRepository.js';
+import { createAdminRoutes } from './routes/admin.js';
 import { createHealthHandler } from './routes/health.js';
 import { createAuthRoutes, createUserRoutes } from './routes/auth.js';
 import { createSyncRoutes } from './routes/sync.js';
@@ -25,6 +29,7 @@ import { getPool } from './infrastructure/db/pool.js';
 
 export function createApp(env: Env) {
   const pool = getPool(env);
+  const sessions = new SessionRepository(pool);
   const auth = new AuthService(env, pool);
   const sync = new SyncService(env, pool);
   const analytics = new AnalyticsService(pool);
@@ -32,7 +37,8 @@ export function createApp(env: Env) {
   const explore = new ExploreService(env, pool);
   const journey = new JourneyService(pool);
   const authRoutes = createAuthRoutes(auth, env);
-  const userRoutes = createUserRoutes();
+  const userRoutes = createUserRoutes(env);
+  const adminRoutes = createAdminRoutes(pool);
   const syncRoutes = createSyncRoutes(sync);
   const repositoryRoutes = createRepositoryRoutes(pool);
   const analyticsRoutes = createAnalyticsRoutes(analytics, heatmap);
@@ -43,6 +49,10 @@ export function createApp(env: Env) {
 
   const app = express();
 
+  if (env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   app.use(
     cors({
       origin: env.WEB_ORIGIN,
@@ -52,6 +62,7 @@ export function createApp(env: Env) {
   app.use(express.json());
   app.use(cookieParser());
   app.use(attachSession(auth));
+  app.use(createActivityMiddleware(sessions));
 
   app.get('/api/v1/health', createHealthHandler(env));
 
@@ -64,6 +75,10 @@ export function createApp(env: Env) {
   });
 
   app.get('/api/v1/users/me', requireAuth, userRoutes.me);
+
+  app.get('/api/v1/admin/users', requireAuth, requireAdmin(env), (req, res, next) => {
+    adminRoutes.users(req, res).catch(next);
+  });
 
   app.post('/api/v1/sync', requireAuth, (req, res, next) => {
     syncRoutes.start(req, res).catch(next);

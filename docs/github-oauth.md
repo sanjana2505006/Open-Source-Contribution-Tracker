@@ -30,6 +30,8 @@ npm run db:migrate
 
 ## Scopes
 
-The app requests `read:user`, `user:email`, and `public_repo` — profile data plus public repository and contribution access.
+The app requests **`read:user`** and **`user:email`** only — read-only profile and email access. Public PRs, issues, commits, and contribution data are fetched via GitHub’s public APIs; OSCT never writes to your repositories.
+
+GitHub OAuth does not offer a read-only “repo” scope. We intentionally avoid `public_repo` so the authorization screen does not show misleading “write access” wording.
 
 After updating scopes, **sign out and sign in again**, then run **Sync from GitHub** to pull all PRs and contributed repos (including ones you never cloned locally).

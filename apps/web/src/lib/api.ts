@@ -1,4 +1,5 @@
 import type {
+  AdminUserList,
   AnalyticsBundle,
   ContributionHeatmap,
   HealthResponse,
@@ -146,4 +147,8 @@ export function fetchIssues(opts: FetchIssuesOpts = {}): Promise<IssueList> {
 
 export function fetchJourney(): Promise<JourneyBundle> {
   return apiFetch<JourneyBundle>('/api/v1/journey');
+}
+
+export function fetchAdminUsers(): Promise<AdminUserList> {
+  return apiFetch<AdminUserList>('/api/v1/admin/users');
 }

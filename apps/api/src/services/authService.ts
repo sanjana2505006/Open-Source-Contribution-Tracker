@@ -1,6 +1,7 @@
 import type { UserProfile } from '@osct/shared';
 import type { Env } from '../config/env.js';
 import { toUserProfile } from '../domain/user.js';
+import type { ClientInfo } from '../lib/clientInfo.js';
 import { encryptToken, generateToken } from '../infrastructure/auth/crypto.js';
 import {
   buildAuthorizeUrl,
@@ -40,7 +41,10 @@ export class AuthService {
     );
   }
 
-  async completeOAuth(code: string): Promise<{ sessionToken: string; user: UserProfile }> {
+  async completeOAuth(
+    code: string,
+    client?: ClientInfo,
+  ): Promise<{ sessionToken: string; user: UserProfile }> {
     const tokenRes = await exchangeCodeForToken(
       code,
       this.env.GITHUB_CLIENT_ID,
@@ -74,7 +78,7 @@ export class AuthService {
       Date.now() + this.env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
     );
 
-    await this.sessions.create(user.id, sessionToken, expiresAt);
+    await this.sessions.create(user.id, sessionToken, expiresAt, client);
 
     return { sessionToken, user: toUserProfile(user) };
   }
@@ -90,6 +94,6 @@ export class AuthService {
   }
 
   async logout(sessionToken: string): Promise<void> {
-    await this.sessions.deleteByToken(sessionToken);
+    await this.sessions.end(sessionToken);
   }
 }

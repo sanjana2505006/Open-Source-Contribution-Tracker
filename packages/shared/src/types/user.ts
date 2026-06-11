@@ -8,4 +8,5 @@ export type UserProfile = {
   email: string | null;
   profileUrl: string;
   createdAt: string;
+  isAdmin?: boolean;
 };

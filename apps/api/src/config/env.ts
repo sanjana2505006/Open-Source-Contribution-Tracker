@@ -10,6 +10,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().min(1, 'GITHUB_CLIENT_SECRET is required'),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   SESSION_MAX_AGE_DAYS: z.coerce.number().default(30),
+  ADMIN_USERNAMES: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

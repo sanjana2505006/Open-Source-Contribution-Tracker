@@ -853,6 +853,24 @@ button:disabled {
   display: none;
 }
 
+.github-auth-note {
+  margin-top: 0.65rem;
+  max-width: 22rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.github-auth-note {
+  margin-top: 0.65rem;
+  max-width: 22rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
 .landing-oauth-error {
   position: fixed;
   bottom: 1.5rem;
@@ -1464,6 +1482,90 @@ button:disabled {
 
 .contribution-heatmap__legend .contribution-heatmap__day:hover {
   transform: none;
+}
+
+/* —— Admin user table —— */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.admin-table th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-panel) 80%, transparent);
+}
+
+.admin-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+}
+
+.admin-table__user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 10rem;
+}
+
+.admin-table__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.admin-table__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-elevated);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.admin-table__name {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.admin-table__handle {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.admin-table__handle:hover {
+  text-decoration: underline;
+}
+
+.admin-table__badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-muted) 12%, transparent);
+}
+
+.admin-table__badge--live {
+  color: var(--color-ok);
+  background: color-mix(in srgb, var(--color-ok) 14%, transparent);
 }
 
 /* —— Landing / marketing (logged out) —— */

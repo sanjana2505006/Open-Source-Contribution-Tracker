@@ -7,6 +7,7 @@ import { ExplorePage } from '../pages/ExplorePage';
 import { RepositoriesPage } from '../pages/RepositoriesPage';
 import { IssuesPage } from '../pages/IssuesPage';
 import { JourneyPage } from '../pages/JourneyPage';
+import { AdminPage } from '../pages/AdminPage';
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
               <Route path="repos" element={<RepositoriesPage />} />
               <Route path="issues" element={<IssuesPage />} />
               <Route path="journey" element={<JourneyPage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

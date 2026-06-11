@@ -3,6 +3,8 @@ import type { AuthService } from '../services/authService.js';
 import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from '../services/authService.js';
 import { generateToken } from '../infrastructure/auth/crypto.js';
 import type { Env } from '../config/env.js';
+import { getClientInfo } from '../lib/clientInfo.js';
+import { userIsAdmin } from '../middleware/admin.js';
 
 function sessionCookieOptions(env: Env, maxAgeMs: number) {
   return {
@@ -39,7 +41,7 @@ export function createAuthRoutes(auth: AuthService, env: Env) {
       }
 
       try {
-        const { sessionToken } = await auth.completeOAuth(code);
+        const { sessionToken } = await auth.completeOAuth(code, getClientInfo(req));
         const maxAge = env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
         res.cookie(SESSION_COOKIE, sessionToken, sessionCookieOptions(env, maxAge));
         res.redirect(`${env.WEB_ORIGIN}/`);
@@ -60,10 +62,16 @@ export function createAuthRoutes(auth: AuthService, env: Env) {
   };
 }
 
-export function createUserRoutes() {
+export function createUserRoutes(env: Env) {
   return {
     me(req: Request, res: Response): void {
-      res.json({ data: req.user });
+      const user = req.user!;
+      res.json({
+        data: {
+          ...user,
+          isAdmin: userIsAdmin(user.username, env),
+        },
+      });
     },
   };
 }

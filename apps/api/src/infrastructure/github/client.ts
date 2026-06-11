@@ -22,7 +22,7 @@ export function buildAuthorizeUrl(
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'read:user user:email public_repo',
+    scope: 'read:user user:email',
     state,
   });
   return `https://github.com/login/oauth/authorize?${params}`;
