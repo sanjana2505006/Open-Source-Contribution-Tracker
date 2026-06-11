@@ -167,6 +167,10 @@ export class GitHubApi {
     return this.searchIssues(`commenter:${username} type:issue`);
   }
 
+  async searchIssuesAssigned(username: string): Promise<GitHubSearchIssue[]> {
+    return this.searchIssues(`assignee:${username} type:issue`);
+  }
+
   async listPublicEvents(username: string): Promise<GitHubEvent[]> {
     return this.listUserEvents(username);
   }

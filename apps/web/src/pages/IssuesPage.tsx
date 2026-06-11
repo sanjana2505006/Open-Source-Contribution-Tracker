@@ -1,5 +1,5 @@
+import { Link, useSearchParams } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import type { IssueCounts, IssueItem, IssueRoleFilter, IssueStatusFilter } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
@@ -49,21 +49,24 @@ export function IssuesPage() {
   const [counts, setCounts] = useState<IssueCounts>(DEFAULT_COUNTS);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadIssues = useCallback(() => {
     if (!user) return;
 
     setLoading(true);
+    setError(null);
     fetchIssues({ role, status })
       .then((data) => {
         setIssues(data.items);
         setCounts(data.counts);
         setTotal(data.total);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         setIssues([]);
         setCounts(DEFAULT_COUNTS);
         setTotal(0);
+        setError(err instanceof Error ? err.message : 'Failed to load issues');
       })
       .finally(() => setLoading(false));
   }, [user, role, status]);
@@ -127,6 +130,8 @@ export function IssuesPage() {
       />
 
       <main className="page-main space-y-3">
+        {error && <p className="alert alert-error">{error}</p>}
+
         <IssueFilterTabs
           role={role}
           status={status}
@@ -136,6 +141,15 @@ export function IssuesPage() {
         />
 
         <Panel flush title={panelTitle} subtitle={panelSubtitle}>
+          {!loading && !error && total === 0 && (
+            <p className="border-b border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-muted)]">
+              No issues in your database yet. Go to{' '}
+              <Link to="/" className="text-[var(--color-accent)] underline underline-offset-2">
+                Overview
+              </Link>{' '}
+              and click <strong>Sync from GitHub</strong> — issues are pulled during sync.
+            </p>
+          )}
           <IssueTable
             issues={issues}
             loading={loading}

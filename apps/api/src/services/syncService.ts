@@ -141,70 +141,79 @@ export class SyncService {
       }
 
       let issueCount = 0;
+      const issueProgressBase = reposSynced + prCount;
 
       try {
-        const assigned = await this.syncGraphqlIssues(
+        const assigned = await this.syncSearchIssues(
           userId,
-          await gql.listViewerAssignedIssues(),
+          api,
+          await api.searchIssuesAssigned(user.username),
           'assigned',
           jobId,
-          reposSynced + prCount,
+          issueProgressBase + issueCount,
         );
         issueCount += assigned.count;
         reposFailed += assigned.failed;
-      } catch {
-        reposFailed++;
+      } catch (err) {
+        console.error('Assigned issue search sync failed:', err);
+        try {
+          const assigned = await this.syncGraphqlIssues(
+            userId,
+            await gql.listViewerAssignedIssues(),
+            'assigned',
+            jobId,
+            issueProgressBase + issueCount,
+          );
+          issueCount += assigned.count;
+          reposFailed += assigned.failed;
+        } catch (fallbackErr) {
+          console.error('Assigned issue GraphQL sync failed:', fallbackErr);
+          reposFailed++;
+        }
       }
 
       try {
-        const authored = await this.syncSearchIssues(
+        const authored = await this.syncGraphqlIssues(
           userId,
-          api,
-          await api.searchIssuesAuthored(user.username),
+          await gql.listAuthoredIssues(user.username),
           'authored',
           jobId,
-          reposSynced + prCount + issueCount,
+          issueProgressBase + issueCount,
         );
         issueCount += authored.count;
         reposFailed += authored.failed;
-      } catch {
-        reposFailed++;
+      } catch (err) {
+        console.error('Authored issue GraphQL sync failed:', err);
+        try {
+          const authored = await this.syncSearchIssues(
+            userId,
+            api,
+            await api.searchIssuesAuthored(user.username),
+            'authored',
+            jobId,
+            issueProgressBase + issueCount,
+          );
+          issueCount += authored.count;
+          reposFailed += authored.failed;
+        } catch (fallbackErr) {
+          console.error('Authored issue search sync failed:', fallbackErr);
+          reposFailed++;
+        }
       }
 
       try {
-        const commentedIssues = await api.searchIssuesCommented(user.username);
-        for (const issue of commentedIssues) {
-          try {
-            const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
-            let repo = await this.repos.findByFullName(fullName);
-            if (!repo) {
-              repo = await this.repos.upsert(await api.fetchRepo(fullName));
-            }
-            await this.userRepos.linkRepoOnly(userId, repo.id);
-
-            await this.contributions.upsert({
-              userId,
-              repositoryId: repo.id,
-              githubId: issue.id,
-              type: 'issue',
-              title: issue.title,
-              state: issue.state,
-              isMerged: null,
-              occurredAt: new Date(issue.created_at),
-              htmlUrl: issue.html_url,
-              roles: ['commented'],
-              createdAt: new Date(issue.created_at),
-              updatedAt: new Date(issue.updated_at),
-            });
-            issueCount++;
-            if (issueCount % 25 === 0) {
-              await this.jobs.updateProgress(jobId, reposSynced + prCount + issueCount, reposFailed);
-            }
-          } catch {
-            reposFailed++;
-          }
-        }
-      } catch {
+        const commented = await this.syncSearchIssues(
+          userId,
+          api,
+          await api.searchIssuesCommented(user.username),
+          'commented',
+          jobId,
+          issueProgressBase + issueCount,
+        );
+        issueCount += commented.count;
+        reposFailed += commented.failed;
+      } catch (err) {
+        console.error('Commented issue search sync failed:', err);
         reposFailed++;
       }
 
@@ -343,7 +352,7 @@ export class SyncService {
     userId: string,
     api: GitHubApi,
     issues: GitHubSearchIssue[],
-    role: 'authored',
+    role: 'assigned' | 'authored' | 'commented',
     jobId: string,
     progressBase: number,
   ): Promise<{ count: number; failed: number }> {
