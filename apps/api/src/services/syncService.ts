@@ -87,135 +87,86 @@ export class SyncService {
       const api = new GitHubApi(token);
       const gql = new GitHubGraphQL(token);
 
-      const contributedRepos = await gql.listContributedRepositories(user.username);
-      for (const node of contributedRepos) {
-        try {
-          const repo = await this.repos.upsert(graphRepoToGitHubRepo(node));
-          await this.userRepos.linkRepoOnly(userId, repo.id);
-          reposSynced++;
-        } catch {
-          reposFailed++;
-        }
-      }
+      // Sync issues first — they are easy to miss if PR/repo phases fail or hit rate limits.
+      const issueCount = await this.syncAllIssues(
+        userId,
+        user.username,
+        api,
+        gql,
+        jobId,
+      );
+      reposSynced += issueCount;
       await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
-      const ownedRepos = await api.listRepos();
-      for (const ghRepo of ownedRepos) {
-        try {
-          const repo = await this.repos.upsert(ghRepo);
-          await this.userRepos.linkRepoOnly(userId, repo.id);
-          reposSynced++;
-        } catch {
-          reposFailed++;
-        }
-      }
-      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
-
-      const pullRequests = await gql.listAllPullRequests(user.username);
-      let prCount = 0;
-
-      for (const pr of pullRequests) {
-        try {
-          const repo = await this.repos.upsert(graphRepoToGitHubRepo(pr.repository));
-          await this.userRepos.linkRepoOnly(userId, repo.id);
-
-          const state = prState(pr);
-          await this.contributions.upsert({
-            userId,
-            repositoryId: repo.id,
-            githubId: pr.databaseId,
-            type: 'pull_request',
-            title: pr.title,
-            state,
-            isMerged: state === 'merged',
-            occurredAt: new Date(pr.createdAt),
-            htmlUrl: pr.url,
-          });
-          prCount++;
-          if (prCount % 25 === 0) {
-            await this.jobs.updateProgress(jobId, reposSynced + prCount, reposFailed);
+      try {
+        const contributedRepos = await gql.listContributedRepositories(user.username);
+        for (const node of contributedRepos) {
+          try {
+            const repo = await this.repos.upsert(graphRepoToGitHubRepo(node));
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+            reposSynced++;
+          } catch {
+            reposFailed++;
           }
-        } catch {
-          reposFailed++;
         }
-      }
-
-      let issueCount = 0;
-      const issueProgressBase = reposSynced + prCount;
-
-      try {
-        const assigned = await this.syncSearchIssues(
-          userId,
-          api,
-          await api.searchIssuesAssigned(user.username),
-          'assigned',
-          jobId,
-          issueProgressBase + issueCount,
-        );
-        issueCount += assigned.count;
-        reposFailed += assigned.failed;
       } catch (err) {
-        console.error('Assigned issue search sync failed:', err);
-        try {
-          const assigned = await this.syncGraphqlIssues(
-            userId,
-            await gql.listViewerAssignedIssues(),
-            'assigned',
-            jobId,
-            issueProgressBase + issueCount,
-          );
-          issueCount += assigned.count;
-          reposFailed += assigned.failed;
-        } catch (fallbackErr) {
-          console.error('Assigned issue GraphQL sync failed:', fallbackErr);
-          reposFailed++;
-        }
-      }
-
-      try {
-        const authored = await this.syncGraphqlIssues(
-          userId,
-          await gql.listAuthoredIssues(user.username),
-          'authored',
-          jobId,
-          issueProgressBase + issueCount,
-        );
-        issueCount += authored.count;
-        reposFailed += authored.failed;
-      } catch (err) {
-        console.error('Authored issue GraphQL sync failed:', err);
-        try {
-          const authored = await this.syncSearchIssues(
-            userId,
-            api,
-            await api.searchIssuesAuthored(user.username),
-            'authored',
-            jobId,
-            issueProgressBase + issueCount,
-          );
-          issueCount += authored.count;
-          reposFailed += authored.failed;
-        } catch (fallbackErr) {
-          console.error('Authored issue search sync failed:', fallbackErr);
-          reposFailed++;
-        }
-      }
-
-      try {
-        const commented = await this.syncSearchIssues(
-          userId,
-          api,
-          await api.searchIssuesCommented(user.username),
-          'commented',
-          jobId,
-          issueProgressBase + issueCount,
-        );
-        issueCount += commented.count;
-        reposFailed += commented.failed;
-      } catch (err) {
-        console.error('Commented issue search sync failed:', err);
+        console.error('Contributed repositories sync failed:', err);
         reposFailed++;
       }
+      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
+
+      try {
+        const ownedRepos = await api.listRepos();
+        for (const ghRepo of ownedRepos) {
+          try {
+            const repo = await this.repos.upsert(ghRepo);
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+            reposSynced++;
+          } catch {
+            reposFailed++;
+          }
+        }
+      } catch (err) {
+        console.error('Owned repositories sync failed:', err);
+        reposFailed++;
+      }
+      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
+
+      let prCount = 0;
+      try {
+        const pullRequests = await gql.listAllPullRequests(user.username);
+
+        for (const pr of pullRequests) {
+          try {
+            const repo = await this.repos.upsert(graphRepoToGitHubRepo(pr.repository));
+            await this.userRepos.linkRepoOnly(userId, repo.id);
+
+            const state = prState(pr);
+            await this.contributions.upsert({
+              userId,
+              repositoryId: repo.id,
+              githubId: pr.databaseId,
+              type: 'pull_request',
+              title: pr.title,
+              state,
+              isMerged: state === 'merged',
+              occurredAt: new Date(pr.createdAt),
+              htmlUrl: pr.url,
+            });
+            prCount++;
+            if (prCount % 25 === 0) {
+              await this.jobs.updateProgress(jobId, reposSynced + prCount, reposFailed);
+            }
+          } catch {
+            reposFailed++;
+          }
+        }
+      } catch (err) {
+        console.error('Pull request sync failed:', err);
+        reposFailed++;
+      }
+
+      reposSynced += prCount;
 
       try {
         const events = await api.listUserEvents(user.username);
@@ -287,8 +238,16 @@ export class SyncService {
       await this.userRepos.rebuildFromContributions(userId);
       await this.journey.refreshMilestones(userId);
 
-      const status = reposFailed > 0 ? 'partial' : 'completed';
-      await this.jobs.complete(jobId, status, null, null);
+      let completionMessage: string | null = null;
+      if (issueCount === 0) {
+        completionMessage =
+          'Sync finished but no issues were saved. Try signing out and back in, then sync again.';
+        reposFailed++;
+      }
+
+      const status =
+        reposFailed > 0 ? 'partial' : issueCount === 0 ? 'partial' : 'completed';
+      await this.jobs.complete(jobId, status, completionMessage, null);
     } catch (err) {
       const resetAt = err instanceof RateLimitError ? err.resetAt : null;
       const message =
@@ -300,6 +259,83 @@ export class SyncService {
         resetAt,
       );
     }
+  }
+
+  private async syncAllIssues(
+    userId: string,
+    username: string,
+    api: GitHubApi,
+    gql: GitHubGraphQL,
+    jobId: string,
+  ): Promise<number> {
+    let issueCount = 0;
+
+    const phases: Array<{
+      label: string;
+      role: 'assigned' | 'authored' | 'commented';
+      fetchSearch: () => Promise<GitHubSearchIssue[]>;
+      fetchGraphql?: () => Promise<GraphQLIssue[]>;
+    }> = [
+      {
+        label: 'assigned',
+        role: 'assigned',
+        fetchSearch: () => api.searchIssuesAssigned(username),
+        fetchGraphql: () => gql.listViewerAssignedIssues(),
+      },
+      {
+        label: 'authored',
+        role: 'authored',
+        fetchSearch: () => api.searchIssuesAuthored(username),
+        fetchGraphql: () => gql.listAuthoredIssues(username),
+      },
+      {
+        label: 'commented',
+        role: 'commented',
+        fetchSearch: () => api.searchIssuesCommented(username),
+      },
+    ];
+
+    for (const phase of phases) {
+      try {
+        const result = await this.syncSearchIssues(
+          userId,
+          api,
+          await phase.fetchSearch(),
+          phase.role,
+          jobId,
+          issueCount,
+        );
+        issueCount += result.count;
+        console.log(
+          `Issue sync (${phase.label}/search): saved ${result.count}, failed ${result.failed}`,
+        );
+        if (result.count === 0 && phase.fetchGraphql) {
+          throw new Error(`No ${phase.label} issues saved from search`);
+        }
+      } catch (searchErr) {
+        console.error(`${phase.label} issue search sync failed:`, searchErr);
+        if (!phase.fetchGraphql || phase.role === 'commented') continue;
+
+        try {
+          const result = await this.syncGraphqlIssues(
+            userId,
+            await phase.fetchGraphql(),
+            phase.role,
+            jobId,
+            issueCount,
+          );
+          issueCount += result.count;
+          console.log(
+            `Issue sync (${phase.label}/graphql): saved ${result.count}, failed ${result.failed}`,
+          );
+        } catch (graphqlErr) {
+          console.error(`${phase.label} issue GraphQL sync failed:`, graphqlErr);
+        }
+      }
+    }
+
+    console.log(`Issue sync total for ${username}: ${issueCount}`);
+    return issueCount;
   }
 
   private async syncGraphqlIssues(
@@ -386,7 +422,10 @@ export class SyncService {
         if (count % 25 === 0) {
           await this.jobs.updateProgress(jobId, progressBase + count, failed);
         }
-      } catch {
+      } catch (err) {
+        if (failed === 0) {
+          console.error(`Issue upsert failed (${role}, ${issue.html_url}):`, err);
+        }
         failed++;
       }
     }
