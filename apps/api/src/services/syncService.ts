@@ -17,11 +17,6 @@ import { UserRepository } from '../repositories/userRepository.js';
 import { UserRepositoryLinkRepository } from '../repositories/userRepositoryLinkRepository.js';
 import { JourneyService } from './journeyService.js';
 
-function commitGithubId(sha: string): number {
-  const hex = sha.replace(/[^a-f0-9]/gi, '').slice(0, 15);
-  return Number.parseInt(hex, 16);
-}
-
 function prState(pr: GraphQLPullRequest): 'open' | 'closed' | 'merged' {
   if (pr.state === 'MERGED' || pr.merged) return 'merged';
   if (pr.state === 'OPEN') return 'open';
@@ -92,6 +87,7 @@ export class SyncService {
   }
 
   async startSync(userId: string): Promise<SyncStatus> {
+    await this.jobs.expireStaleRunning(userId, 3);
     const running = await this.jobs.findRunning(userId);
     if (running) return running;
 
@@ -101,6 +97,7 @@ export class SyncService {
   }
 
   async syncIssuesOnly(userId: string): Promise<{ issueCount: number }> {
+    await this.jobs.expireStaleRunning(userId, 3);
     const running = await this.jobs.findRunning(userId);
     if (running) {
       throw new Error('A sync is already running — wait a minute, then try again.');
@@ -244,73 +241,7 @@ export class SyncService {
       }
 
       reposSynced += prCount;
-
-      try {
-        const events = await api.listUserEvents(user.username);
-        for (const event of events) {
-          if (event.type !== 'PushEvent' || !event.payload.commits?.length) continue;
-
-          const fullName = event.repo.name;
-          let repo = await this.repos.findByFullName(fullName);
-          if (!repo) {
-            try {
-              repo = await this.repos.upsert(await api.fetchRepo(fullName));
-              await this.userRepos.linkRepoOnly(userId, repo.id);
-            } catch {
-              continue;
-            }
-          }
-
-          for (const commit of event.payload.commits) {
-            await this.contributions.upsert({
-              userId,
-              repositoryId: repo.id,
-              githubId: commitGithubId(commit.sha),
-              type: 'commit',
-              title: commit.message.split('\n')[0] ?? commit.message,
-              state: null,
-              isMerged: null,
-              occurredAt: new Date(event.created_at),
-              htmlUrl: `https://github.com/${fullName}/commit/${commit.sha}`,
-            });
-          }
-        }
-      } catch {
-        reposFailed++;
-      }
-
-      try {
-        const commitContributions = await gql.listCommitContributions(user.username);
-        for (const contribution of commitContributions) {
-          try {
-            const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
-            await this.userRepos.linkRepoOnly(userId, repo.id);
-
-            await this.contributions.upsert({
-              userId,
-              repositoryId: repo.id,
-              githubId: contributionGithubId(
-                contribution.repository.databaseId,
-                contribution.occurredAt,
-              ),
-              type: 'commit',
-              title:
-                contribution.commitCount === 1
-                  ? 'Commit'
-                  : `${contribution.commitCount} commits`,
-              state: null,
-              isMerged: null,
-              occurredAt: new Date(contribution.occurredAt),
-              htmlUrl: `https://github.com${contribution.resourcePath}`,
-              commitCount: contribution.commitCount,
-            });
-          } catch {
-            reposFailed++;
-          }
-        }
-      } catch {
-        reposFailed++;
-      }
+      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
       await this.userRepos.rebuildFromContributions(userId);
       await this.journey.refreshMilestones(userId);
@@ -318,14 +249,19 @@ export class SyncService {
       let completionMessage: string | null = null;
       if (issueCount === 0) {
         completionMessage =
-          'Sync finished but no issues were saved. Click Sync again — if this persists, sign out and sign back in.';
+          'PRs synced but no issues saved — open My Issues and click Sync issues from GitHub.';
         reposFailed++;
       } else {
-        completionMessage = `Synced ${issueCount} issues from GitHub.`;
+        completionMessage = `Synced ${issueCount} issues, ${prCount} PRs, and ${reposSynced - issueCount - prCount} repos.`;
       }
 
       const status = reposFailed > 0 || issueCount === 0 ? 'partial' : 'completed';
       await this.jobs.complete(jobId, status, completionMessage, null);
+
+      // Commits are slow — run after the job is marked complete so the UI stops spinning.
+      void this.syncRecentCommits(userId, user.username, gql, jobId).catch((err) => {
+        console.error('Background commit sync failed:', err);
+      });
     } catch (err) {
       const resetAt = err instanceof RateLimitError ? err.resetAt : null;
       const message =
@@ -414,6 +350,51 @@ export class SyncService {
 
     console.log(`Issue sync total for ${username}: ${issueCount}`);
     return issueCount;
+  }
+
+  private async syncRecentCommits(
+    userId: string,
+    username: string,
+    gql: GitHubGraphQL,
+    jobId: string,
+  ): Promise<void> {
+    const commitContributions = await gql.listCommitContributions(username, 1);
+    let count = 0;
+
+    for (const contribution of commitContributions) {
+      try {
+        const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
+        await this.userRepos.linkRepoOnly(userId, repo.id);
+
+        await this.contributions.upsert({
+          userId,
+          repositoryId: repo.id,
+          githubId: contributionGithubId(
+            contribution.repository.databaseId,
+            contribution.occurredAt,
+          ),
+          type: 'commit',
+          title:
+            contribution.commitCount === 1
+              ? 'Commit'
+              : `${contribution.commitCount} commits`,
+          state: null,
+          isMerged: null,
+          occurredAt: new Date(contribution.occurredAt),
+          htmlUrl: `https://github.com${contribution.resourcePath}`,
+          commitCount: contribution.commitCount,
+        });
+        count++;
+        if (count % 25 === 0) {
+          await this.jobs.updateProgress(jobId, count, 0);
+        }
+      } catch {
+        /* skip bad rows */
+      }
+    }
+
+    await this.userRepos.rebuildFromContributions(userId);
+    console.log(`Background commit sync for ${username}: ${count} rows`);
   }
 
   private async syncGraphqlIssues(

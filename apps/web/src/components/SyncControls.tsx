@@ -45,7 +45,11 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
     }
   }
 
-  const running = status?.status === 'running' || busy;
+  const startedMs = status?.startedAt ? new Date(status.startedAt).getTime() : 0;
+  const syncActive = status?.status === 'running' || busy;
+  const stale =
+    syncActive && startedMs > 0 && Date.now() - startedMs > 3 * 60 * 1000;
+  const running = syncActive && !stale;
 
   return (
     <div className="flex min-w-[200px] flex-col items-end gap-2">
@@ -60,8 +64,14 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
             <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="20 10" />
           </svg>
         )}
-        {running ? 'Syncing…' : 'Sync from GitHub'}
+        {stale ? 'Sync again' : running ? 'Syncing…' : 'Sync from GitHub'}
       </button>
+
+      {stale && (
+        <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-warn)]">
+          Sync timed out. Click Sync again, or use My Issues → Sync issues from GitHub.
+        </p>
+      )}
 
       {running && status && (
         <div className="w-full max-w-[220px]">

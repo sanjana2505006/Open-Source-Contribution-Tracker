@@ -51,14 +51,16 @@ type Page<T> = T[];
 export class GitHubApi {
   constructor(private token: string) {}
 
-  private async request<T>(path: string): Promise<T> {
-    const res = await fetch(`https://api.github.com${path}`, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${this.token}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    });
+  private async request<T>(path: string, auth = true): Promise<T> {
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    if (auth && this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const res = await fetch(`https://api.github.com${path}`, { headers });
 
     if (res.status === 403 || res.status === 429) {
       const resetHeader = res.headers.get('x-ratelimit-reset');
@@ -142,15 +144,39 @@ export class GitHubApi {
   }
 
   async searchIssues(query: string): Promise<GitHubSearchIssue[]> {
+    try {
+      return await this.searchIssuesWithAuth(query);
+    } catch (err) {
+      console.warn('Authenticated issue search failed, retrying public search:', err);
+      return this.searchIssuesPublic(query);
+    }
+  }
+
+  private async searchIssuesWithAuth(query: string): Promise<GitHubSearchIssue[]> {
+    return this.searchIssuesPaged((page) =>
+      `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100&page=${page}`,
+      true,
+    );
+  }
+
+  private async searchIssuesPublic(query: string): Promise<GitHubSearchIssue[]> {
+    return this.searchIssuesPaged((page) =>
+      `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100&page=${page}`,
+      false,
+    );
+  }
+
+  private async searchIssuesPaged(
+    buildPath: (page: number) => string,
+    auth: boolean,
+  ): Promise<GitHubSearchIssue[]> {
     const items: GitHubSearchIssue[] = [];
 
     for (let page = 1; page <= 10; page++) {
       const data = await this.request<{
         items: GitHubSearchIssue[];
         incomplete_results: boolean;
-      }>(
-        `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100&page=${page}`,
-      );
+      }>(buildPath(page), auth);
 
       for (const item of data.items) {
         if (item.pull_request) continue;

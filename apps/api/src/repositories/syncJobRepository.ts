@@ -92,7 +92,7 @@ export class SyncJobRepository {
   }
 
   /** Render can kill long background syncs — don't leave jobs stuck in `running`. */
-  async expireStaleRunning(userId: string, maxAgeMinutes = 10): Promise<number> {
+  async expireStaleRunning(userId: string, maxAgeMinutes = 3): Promise<number> {
     const result = await this.db.query<{ id: string }>(
       `UPDATE sync_jobs
        SET status = 'failed',

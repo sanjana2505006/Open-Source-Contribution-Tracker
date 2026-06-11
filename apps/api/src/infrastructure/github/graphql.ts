@@ -330,26 +330,32 @@ export class GitHubGraphQL {
     return this.listIssuesFromConnection(login, 'issues');
   }
 
-  async listCommitContributions(login: string): Promise<GraphQLCommitContribution[]> {
+  async listCommitContributions(
+    login: string,
+    sinceYears = 1,
+  ): Promise<GraphQLCommitContribution[]> {
     const items: GraphQLCommitContribution[] = [];
     const rangeEnd = new Date();
-    let rangeStart = new Date('2008-01-01T00:00:00Z');
+    const rangeStart = new Date();
+    rangeStart.setUTCFullYear(rangeStart.getUTCFullYear() - sinceYears);
 
-    while (rangeStart < rangeEnd) {
-      const chunkEnd = new Date(rangeStart);
+    let cursor = new Date(rangeStart);
+
+    while (cursor < rangeEnd) {
+      const chunkEnd = new Date(cursor);
       chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 364);
       const to = chunkEnd < rangeEnd ? chunkEnd : rangeEnd;
 
       items.push(
         ...(await this.listCommitContributionsInRange(
           login,
-          rangeStart.toISOString(),
+          cursor.toISOString(),
           to.toISOString(),
         )),
       );
 
-      rangeStart = new Date(to);
-      rangeStart.setUTCDate(rangeStart.getUTCDate() + 1);
+      cursor = new Date(to);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
     return items;
