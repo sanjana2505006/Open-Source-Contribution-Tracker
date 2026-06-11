@@ -89,6 +89,9 @@ export function createApp(env: Env) {
   app.get('/api/v1/stats/summary', requireAuth, (req, res, next) => {
     syncRoutes.stats(req, res).catch(next);
   });
+  app.post('/api/v1/sync/issues', requireAuth, (req, res, next) => {
+    syncRoutes.syncIssues(req, res).catch(next);
+  });
   app.get('/api/v1/repositories', requireAuth, (req, res, next) => {
     repositoryRoutes.list(req, res).catch(next);
   });

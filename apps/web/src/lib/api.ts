@@ -86,6 +86,10 @@ export function startSync(): Promise<SyncStatus> {
   return apiFetch<SyncStatus>('/api/v1/sync', { method: 'POST' });
 }
 
+export function syncIssuesOnly(): Promise<{ issueCount: number }> {
+  return apiFetch<{ issueCount: number }>('/api/v1/sync/issues', { method: 'POST' });
+}
+
 export function fetchSyncStatus(): Promise<SyncStatus | null> {
   return apiFetch<SyncStatus | null>('/api/v1/sync/status');
 }

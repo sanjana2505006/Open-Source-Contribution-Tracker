@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
 import type { IssueCounts, IssueItem, IssueRoleFilter, IssueStatusFilter } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
@@ -7,7 +7,7 @@ import { IssueFilterTabs } from '../components/IssueFilterTabs';
 import { IssueTable } from '../components/IssueTable';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
-import { fetchIssues } from '../lib/api';
+import { fetchIssues, syncIssuesOnly } from '../lib/api';
 
 const DEFAULT_COUNTS: IssueCounts = {
   all: 0,
@@ -49,7 +49,9 @@ export function IssuesPage() {
   const [counts, setCounts] = useState<IssueCounts>(DEFAULT_COUNTS);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const loadIssues = useCallback(() => {
     if (!user) return;
@@ -90,6 +92,21 @@ export function IssuesPage() {
     setSearchParams(params);
   }
 
+  async function handleSyncIssues() {
+    setSyncing(true);
+    setError(null);
+    setSyncMessage(null);
+    try {
+      const result = await syncIssuesOnly();
+      setSyncMessage(`Synced ${result.issueCount} issues from GitHub.`);
+      loadIssues();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Issue sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   if (!user) {
     return (
       <LoggedOutLanding
@@ -127,10 +144,21 @@ export function IssuesPage() {
             ? 'Issues you commented on, were assigned, or opened — but nothing has moved in 30+ days.'
             : "Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
         }
+        actions={
+          <button
+            type="button"
+            onClick={handleSyncIssues}
+            disabled={syncing}
+            className="btn btn-primary"
+          >
+            {syncing ? 'Syncing issues…' : 'Sync issues from GitHub'}
+          </button>
+        }
       />
 
       <main className="page-main space-y-3">
         {error && <p className="alert alert-error">{error}</p>}
+        {syncMessage && <p className="alert alert-success">{syncMessage}</p>}
 
         <IssueFilterTabs
           role={role}
@@ -143,11 +171,8 @@ export function IssuesPage() {
         <Panel flush title={panelTitle} subtitle={panelSubtitle}>
           {!loading && !error && total === 0 && (
             <p className="border-b border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-muted)]">
-              No issues in your database yet. Go to{' '}
-              <Link to="/" className="text-[var(--color-accent)] underline underline-offset-2">
-                Overview
-              </Link>{' '}
-              and click <strong>Sync from GitHub</strong> — issues are pulled during sync.
+              No issues saved yet. Click <strong>Sync issues from GitHub</strong> above — it only
+              pulls issues (much faster than a full sync on Overview).
             </p>
           )}
           <IssueTable

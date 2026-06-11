@@ -24,5 +24,12 @@ export function createSyncRoutes(sync: SyncService) {
       const stats = await sync.getStats(req.user.id);
       res.json({ data: stats });
     },
+
+    async syncIssues(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const result = await sync.syncIssuesOnly(req.user.id);
+      res.json({ data: result });
+    },
   };
 }

@@ -81,7 +81,18 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
         <p className="text-[10px] font-medium text-[var(--color-ok)]">last sync ok</p>
       )}
 
-      {!running && status?.status === 'partial' && status.errorMessage && (
+      {!running &&
+        status?.status === 'partial' &&
+        status.errorMessage?.startsWith('Synced ') && (
+          <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-ok)]">
+            {status.errorMessage}
+          </p>
+        )}
+
+      {!running &&
+        status?.status === 'partial' &&
+        status.errorMessage &&
+        !status.errorMessage.startsWith('Synced ') && (
         <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-warn)]">
           {status.errorMessage}
         </p>

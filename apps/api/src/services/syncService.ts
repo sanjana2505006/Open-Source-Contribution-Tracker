@@ -1,6 +1,6 @@
 import type { StatsSummary, SyncStatus } from '@osct/shared';
 import type { Env } from '../config/env.js';
-import { GitHubApi, RateLimitError, type GitHubSearchIssue } from '../infrastructure/github/api.js';
+import { GitHubApi, RateLimitError, type GitHubRepo, type GitHubSearchIssue } from '../infrastructure/github/api.js';
 import {
   GitHubGraphQL,
   contributionGithubId,
@@ -26,6 +26,39 @@ function prState(pr: GraphQLPullRequest): 'open' | 'closed' | 'merged' {
   if (pr.state === 'MERGED' || pr.merged) return 'merged';
   if (pr.state === 'OPEN') return 'open';
   return 'closed';
+}
+
+function repoFullNameFromUrl(repositoryUrl: string): string {
+  return repositoryUrl.replace('https://api.github.com/repos/', '');
+}
+
+function stubGithubId(fullName: string): number {
+  let hash = 0;
+  for (let i = 0; i < fullName.length; i++) {
+    hash = (Math.imul(31, hash) + fullName.charCodeAt(i)) >>> 0;
+  }
+  return (hash % 900_000_000) + 100_000_000;
+}
+
+function stubRepo(fullName: string): GitHubRepo {
+  const slash = fullName.indexOf('/');
+  const ownerLogin = fullName.slice(0, slash);
+  const name = fullName.slice(slash + 1);
+
+  return {
+    id: stubGithubId(fullName),
+    name,
+    full_name: fullName,
+    owner: { login: ownerLogin },
+    description: null,
+    language: null,
+    stargazers_count: 0,
+    fork: false,
+    private: false,
+    html_url: `https://github.com/${fullName}`,
+    default_branch: null,
+    pushed_at: null,
+  };
 }
 
 export class SyncService {
@@ -65,6 +98,50 @@ export class SyncService {
     const job = await this.jobs.create(userId);
     void this.runSync(userId, job.id);
     return job;
+  }
+
+  async syncIssuesOnly(userId: string): Promise<{ issueCount: number }> {
+    const running = await this.jobs.findRunning(userId);
+    if (running) {
+      throw new Error('A sync is already running — wait a minute, then try again.');
+    }
+
+    const token = await this.oauth.getAccessToken(userId, this.env.SESSION_SECRET);
+    if (!token) {
+      throw new Error('No GitHub token — sign out and sign in again');
+    }
+
+    const user = await this.users.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const api = new GitHubApi(token);
+    const gql = new GitHubGraphQL(token);
+    const job = await this.jobs.create(userId);
+
+    try {
+      const issueCount = await this.syncAllIssues(userId, user.username, api, gql, job.id);
+      await this.userRepos.rebuildFromContributions(userId);
+
+      const message =
+        issueCount > 0
+          ? `Synced ${issueCount} issues from GitHub.`
+          : 'No issues were saved — sign out and sign in again, then retry.';
+
+      await this.jobs.complete(
+        job.id,
+        issueCount > 0 ? 'completed' : 'partial',
+        message,
+        null,
+      );
+
+      return { issueCount };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Issue sync failed';
+      await this.jobs.complete(job.id, 'failed', message, null);
+      throw err;
+    }
   }
 
   private async runSync(userId: string, jobId: string): Promise<void> {
@@ -241,12 +318,13 @@ export class SyncService {
       let completionMessage: string | null = null;
       if (issueCount === 0) {
         completionMessage =
-          'Sync finished but no issues were saved. Try signing out and back in, then sync again.';
+          'Sync finished but no issues were saved. Click Sync again — if this persists, sign out and sign back in.';
         reposFailed++;
+      } else {
+        completionMessage = `Synced ${issueCount} issues from GitHub.`;
       }
 
-      const status =
-        reposFailed > 0 ? 'partial' : issueCount === 0 ? 'partial' : 'completed';
+      const status = reposFailed > 0 || issueCount === 0 ? 'partial' : 'completed';
       await this.jobs.complete(jobId, status, completionMessage, null);
     } catch (err) {
       const resetAt = err instanceof RateLimitError ? err.resetAt : null;
@@ -395,13 +473,36 @@ export class SyncService {
     let count = 0;
     let failed = 0;
 
-    for (const issue of issues) {
+    const repoCache = new Map<string, Awaited<ReturnType<RepositoryRepository['upsert']>>>();
+    const uniqueFullNames = [
+      ...new Set(issues.map((issue) => repoFullNameFromUrl(issue.repository_url))),
+    ];
+
+    for (const fullName of uniqueFullNames) {
       try {
-        const fullName = issue.repository_url.replace('https://api.github.com/repos/', '');
         let repo = await this.repos.findByFullName(fullName);
         if (!repo) {
-          repo = await this.repos.upsert(await api.fetchRepo(fullName));
+          try {
+            repo = await this.repos.upsert(await api.fetchRepo(fullName));
+          } catch {
+            repo = await this.repos.upsert(stubRepo(fullName));
+          }
         }
+        repoCache.set(fullName, repo);
+      } catch (err) {
+        console.error(`Could not cache repo ${fullName}:`, err);
+      }
+    }
+
+    for (const issue of issues) {
+      try {
+        const fullName = repoFullNameFromUrl(issue.repository_url);
+        const repo = repoCache.get(fullName);
+        if (!repo) {
+          failed++;
+          continue;
+        }
+
         await this.userRepos.linkRepoOnly(userId, repo.id);
 
         await this.contributions.upsert({

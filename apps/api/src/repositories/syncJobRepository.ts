@@ -39,6 +39,8 @@ export class SyncJobRepository {
   }
 
   async findRunning(userId: string): Promise<SyncStatus | null> {
+    await this.expireStaleRunning(userId);
+
     const result = await this.db.query<DbSyncJob>(
       `SELECT id, user_id, status, repos_synced, repos_failed, started_at, completed_at, error_message, created_at
        FROM sync_jobs
@@ -51,6 +53,8 @@ export class SyncJobRepository {
   }
 
   async findLatest(userId: string): Promise<SyncStatus | null> {
+    await this.expireStaleRunning(userId);
+
     const result = await this.db.query<DbSyncJob>(
       `SELECT id, user_id, status, repos_synced, repos_failed, started_at, completed_at, error_message, created_at
        FROM sync_jobs
@@ -85,5 +89,21 @@ export class SyncJobRepository {
        WHERE id = $1`,
       [jobId, status, errorMessage, rateLimitResetAt],
     );
+  }
+
+  /** Render can kill long background syncs — don't leave jobs stuck in `running`. */
+  async expireStaleRunning(userId: string, maxAgeMinutes = 10): Promise<number> {
+    const result = await this.db.query<{ id: string }>(
+      `UPDATE sync_jobs
+       SET status = 'failed',
+           completed_at = NOW(),
+           error_message = 'Sync timed out — click Sync from GitHub again'
+       WHERE user_id = $1
+         AND status = 'running'
+         AND started_at < NOW() - ($2::text || ' minutes')::interval
+       RETURNING id`,
+      [userId, maxAgeMinutes],
+    );
+    return result.rowCount ?? 0;
   }
 }

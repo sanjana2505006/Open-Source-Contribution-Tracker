@@ -605,6 +605,12 @@ button:disabled {
   color: var(--color-bad);
 }
 
+.alert-success {
+  border: 1px solid color-mix(in srgb, var(--color-ok) 35%, transparent);
+  background: color-mix(in srgb, var(--color-ok) 10%, transparent);
+  color: var(--color-ok);
+}
+
 /* —— Scrollbars —— */
 
 .scroll-area {
