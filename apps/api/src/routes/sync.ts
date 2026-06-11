@@ -31,5 +31,12 @@ export function createSyncRoutes(sync: SyncService) {
       const result = await sync.syncIssuesOnly(req.user.id);
       res.json({ data: result });
     },
+
+    async cancel(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      await sync.cancelSync(req.user.id);
+      res.json({ data: { ok: true } });
+    },
   };
 }

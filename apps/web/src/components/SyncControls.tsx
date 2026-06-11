@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SyncStatus } from '@osct/shared';
-import { fetchSyncStatus, startSync } from '../lib/api';
+import { cancelSync, fetchSyncStatus, startSync } from '../lib/api';
 
 type SyncControlsProps = {
   onComplete: () => void;
 };
 
+const STALE_MS = 60_000;
+
+function jobAgeMs(job: SyncStatus | null): number {
+  if (!job?.startedAt) return Infinity;
+  return Date.now() - new Date(job.startedAt).getTime();
+}
+
 export function SyncControls({ onComplete }: SyncControlsProps) {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sessionSync, setSessionSync] = useState(false);
 
   const poll = useCallback(async () => {
     const job = await fetchSyncStatus();
@@ -17,39 +25,56 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
   }, []);
 
   useEffect(() => {
-    poll().catch(() => {});
+    poll()
+      .then(async (job) => {
+        if (job?.status === 'running' && jobAgeMs(job) > STALE_MS) {
+          await cancelSync();
+          await poll();
+        }
+      })
+      .catch(() => {});
   }, [poll]);
 
   useEffect(() => {
-    if (status?.status !== 'running') return;
+    if (!sessionSync || status?.status !== 'running') return;
 
     const id = window.setInterval(() => {
       poll()
         .then((job) => {
-          if (job && job.status !== 'running') onComplete();
+          if (job && job.status !== 'running') {
+            setSessionSync(false);
+            onComplete();
+          }
         })
         .catch(() => {});
     }, 2000);
 
     return () => window.clearInterval(id);
-  }, [status?.status, poll, onComplete]);
+  }, [sessionSync, status?.status, poll, onComplete]);
 
   async function handleSync() {
+    setSessionSync(true);
     setBusy(true);
     try {
       const job = await startSync();
       setStatus(job);
-      if (job.status !== 'running') onComplete();
+      if (job.status !== 'running') {
+        setSessionSync(false);
+        onComplete();
+      }
+    } catch {
+      setSessionSync(false);
     } finally {
       setBusy(false);
     }
   }
 
-  const startedMs = status?.startedAt ? new Date(status.startedAt).getTime() : 0;
-  const syncActive = status?.status === 'running' || busy;
-  const stale =
-    syncActive && startedMs > 0 && Date.now() - startedMs > 3 * 60 * 1000;
-  const running = syncActive && !stale;
+  const ageMs = jobAgeMs(status);
+  const serverRunning = status?.status === 'running';
+  const stale = serverRunning && ageMs > STALE_MS;
+  const showSpinner =
+    sessionSync && (busy || (serverRunning && !stale));
+  const running = showSpinner;
 
   return (
     <div className="flex min-w-[200px] flex-col items-end gap-2">
@@ -64,14 +89,8 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
             <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="20 10" />
           </svg>
         )}
-        {stale ? 'Sync again' : running ? 'Syncing…' : 'Sync from GitHub'}
+        {running ? 'Syncing…' : 'Sync from GitHub'}
       </button>
-
-      {stale && (
-        <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-warn)]">
-          Sync timed out. Click Sync again, or use My Issues → Sync issues from GitHub.
-        </p>
-      )}
 
       {running && status && (
         <div className="w-full max-w-[220px]">

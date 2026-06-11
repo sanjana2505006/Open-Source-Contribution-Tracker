@@ -92,7 +92,7 @@ export class SyncJobRepository {
   }
 
   /** Render can kill long background syncs — don't leave jobs stuck in `running`. */
-  async expireStaleRunning(userId: string, maxAgeMinutes = 3): Promise<number> {
+  async expireStaleRunning(userId: string, maxAgeMinutes = 1): Promise<number> {
     const result = await this.db.query<{ id: string }>(
       `UPDATE sync_jobs
        SET status = 'failed',
@@ -103,6 +103,20 @@ export class SyncJobRepository {
          AND started_at < NOW() - ($2::text || ' minutes')::interval
        RETURNING id`,
       [userId, maxAgeMinutes],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  /** Force-fail any in-flight sync so the user can start fresh. */
+  async cancelRunning(userId: string, reason = 'Sync cancelled'): Promise<number> {
+    const result = await this.db.query<{ id: string }>(
+      `UPDATE sync_jobs
+       SET status = 'failed',
+           completed_at = NOW(),
+           error_message = $2
+       WHERE user_id = $1 AND status = 'running'
+       RETURNING id`,
+      [userId, reason],
     );
     return result.rowCount ?? 0;
   }

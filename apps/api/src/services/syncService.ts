@@ -79,7 +79,12 @@ export class SyncService {
   }
 
   async getStatus(userId: string): Promise<SyncStatus | null> {
+    await this.jobs.expireStaleRunning(userId, 1);
     return this.jobs.findLatest(userId);
+  }
+
+  async cancelSync(userId: string): Promise<void> {
+    await this.jobs.cancelRunning(userId);
   }
 
   async getStats(userId: string): Promise<StatsSummary> {
@@ -87,9 +92,8 @@ export class SyncService {
   }
 
   async startSync(userId: string): Promise<SyncStatus> {
-    await this.jobs.expireStaleRunning(userId, 3);
-    const running = await this.jobs.findRunning(userId);
-    if (running) return running;
+    await this.jobs.expireStaleRunning(userId, 1);
+    await this.jobs.cancelRunning(userId, 'Starting a new sync');
 
     const job = await this.jobs.create(userId);
     void this.runSync(userId, job.id);
@@ -97,12 +101,8 @@ export class SyncService {
   }
 
   async syncIssuesOnly(userId: string): Promise<{ issueCount: number }> {
-    await this.jobs.expireStaleRunning(userId, 3);
-    const running = await this.jobs.findRunning(userId);
-    if (running) {
-      throw new Error('A sync is already running — wait a minute, then try again.');
-    }
-
+    await this.jobs.expireStaleRunning(userId, 1);
+    await this.jobs.cancelRunning(userId, 'Starting issue-only sync');
     const token = await this.oauth.getAccessToken(userId, this.env.SESSION_SECRET);
     if (!token) {
       throw new Error('No GitHub token — sign out and sign in again');
@@ -144,6 +144,9 @@ export class SyncService {
   private async runSync(userId: string, jobId: string): Promise<void> {
     let reposSynced = 0;
     let reposFailed = 0;
+    const deadline = Date.now() + 90_000;
+
+    const timedOut = () => Date.now() > deadline;
 
     try {
       const token = await this.oauth.getAccessToken(userId, this.env.SESSION_SECRET);
@@ -172,72 +175,81 @@ export class SyncService {
       reposSynced += issueCount;
       await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
-      try {
-        const contributedRepos = await gql.listContributedRepositories(user.username);
-        for (const node of contributedRepos) {
-          try {
-            const repo = await this.repos.upsert(graphRepoToGitHubRepo(node));
-            await this.userRepos.linkRepoOnly(userId, repo.id);
-            reposSynced++;
-          } catch {
-            reposFailed++;
+      if (!timedOut()) {
+        try {
+          const contributedRepos = await gql.listContributedRepositories(user.username);
+          for (const node of contributedRepos) {
+            if (timedOut()) break;
+            try {
+              const repo = await this.repos.upsert(graphRepoToGitHubRepo(node));
+              await this.userRepos.linkRepoOnly(userId, repo.id);
+              reposSynced++;
+            } catch {
+              reposFailed++;
+            }
           }
+        } catch (err) {
+          console.error('Contributed repositories sync failed:', err);
+          reposFailed++;
         }
-      } catch (err) {
-        console.error('Contributed repositories sync failed:', err);
-        reposFailed++;
+        await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
       }
-      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
-      try {
-        const ownedRepos = await api.listRepos();
-        for (const ghRepo of ownedRepos) {
-          try {
-            const repo = await this.repos.upsert(ghRepo);
-            await this.userRepos.linkRepoOnly(userId, repo.id);
-            reposSynced++;
-          } catch {
-            reposFailed++;
+      if (!timedOut()) {
+        try {
+          const ownedRepos = await api.listRepos();
+          for (const ghRepo of ownedRepos) {
+            if (timedOut()) break;
+            try {
+              const repo = await this.repos.upsert(ghRepo);
+              await this.userRepos.linkRepoOnly(userId, repo.id);
+              reposSynced++;
+            } catch {
+              reposFailed++;
+            }
           }
+        } catch (err) {
+          console.error('Owned repositories sync failed:', err);
+          reposFailed++;
         }
-      } catch (err) {
-        console.error('Owned repositories sync failed:', err);
-        reposFailed++;
+        await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
       }
-      await this.jobs.updateProgress(jobId, reposSynced, reposFailed);
 
       let prCount = 0;
-      try {
-        const pullRequests = await gql.listAllPullRequests(user.username);
+      if (!timedOut()) {
+        try {
+          const pullRequests = await gql.listAllPullRequests(user.username);
 
-        for (const pr of pullRequests) {
-          try {
-            const repo = await this.repos.upsert(graphRepoToGitHubRepo(pr.repository));
-            await this.userRepos.linkRepoOnly(userId, repo.id);
+          for (const pr of pullRequests) {
+            if (timedOut()) break;
+            try {
+              const repo = await this.repos.upsert(graphRepoToGitHubRepo(pr.repository));
+              await this.userRepos.linkRepoOnly(userId, repo.id);
 
-            const state = prState(pr);
-            await this.contributions.upsert({
-              userId,
-              repositoryId: repo.id,
-              githubId: pr.databaseId,
-              type: 'pull_request',
-              title: pr.title,
-              state,
-              isMerged: state === 'merged',
-              occurredAt: new Date(pr.createdAt),
-              htmlUrl: pr.url,
-            });
-            prCount++;
-            if (prCount % 25 === 0) {
-              await this.jobs.updateProgress(jobId, reposSynced + prCount, reposFailed);
+              const state = prState(pr);
+              await this.contributions.upsert({
+                userId,
+                repositoryId: repo.id,
+                githubId: pr.databaseId,
+                type: 'pull_request',
+                title: pr.title,
+                state,
+                isMerged: state === 'merged',
+                occurredAt: new Date(pr.createdAt),
+                htmlUrl: pr.url,
+              });
+              prCount++;
+              if (prCount % 25 === 0) {
+                await this.jobs.updateProgress(jobId, reposSynced + prCount, reposFailed);
+              }
+            } catch {
+              reposFailed++;
             }
-          } catch {
-            reposFailed++;
           }
+        } catch (err) {
+          console.error('Pull request sync failed:', err);
+          reposFailed++;
         }
-      } catch (err) {
-        console.error('Pull request sync failed:', err);
-        reposFailed++;
       }
 
       reposSynced += prCount;
@@ -247,12 +259,16 @@ export class SyncService {
       await this.journey.refreshMilestones(userId);
 
       let completionMessage: string | null = null;
-      if (issueCount === 0) {
+      if (timedOut()) {
+        completionMessage =
+          'Sync timed out before finishing — issues and partial data were saved. Click Sync again for the rest.';
+        reposFailed++;
+      } else if (issueCount === 0) {
         completionMessage =
           'PRs synced but no issues saved — open My Issues and click Sync issues from GitHub.';
         reposFailed++;
       } else {
-        completionMessage = `Synced ${issueCount} issues, ${prCount} PRs, and ${reposSynced - issueCount - prCount} repos.`;
+        completionMessage = `Synced ${issueCount} issues, ${prCount} PRs, and ${Math.max(0, reposSynced - issueCount - prCount)} repos.`;
       }
 
       const status = reposFailed > 0 || issueCount === 0 ? 'partial' : 'completed';

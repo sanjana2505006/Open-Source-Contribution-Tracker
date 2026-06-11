@@ -94,6 +94,10 @@ export function fetchSyncStatus(): Promise<SyncStatus | null> {
   return apiFetch<SyncStatus | null>('/api/v1/sync/status');
 }
 
+export function cancelSync(): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>('/api/v1/sync/cancel', { method: 'POST' });
+}
+
 export function fetchStats(): Promise<StatsSummary> {
   return apiFetch<StatsSummary>('/api/v1/stats/summary');
 }
