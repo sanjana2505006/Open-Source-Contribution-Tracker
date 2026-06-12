@@ -1,9 +1,10 @@
-import type { ContributorProfile } from '@osct/shared';
+import type { ContributorProfile, PublicProfile } from '@osct/shared';
 import type { Env } from '../config/env.js';
 import { GitHubApi, RateLimitError } from '../infrastructure/github/api.js';
 import { GitHubGraphQL, graphRepoToGitHubRepo } from '../infrastructure/github/graphql.js';
 import { OAuthRepository } from '../repositories/oauthRepository.js';
 import { ContributorCacheRepository } from '../repositories/contributorCacheRepository.js';
+import { UserRepository } from '../repositories/userRepository.js';
 import { WatchlistRepository } from '../repositories/watchlistRepository.js';
 import {
   buildAnalyticsBundle,
@@ -15,14 +16,24 @@ export class ExploreService {
   private oauth: OAuthRepository;
   private cache: ContributorCacheRepository;
   private watchlist: WatchlistRepository;
+  private users: UserRepository;
 
   constructor(
     private env: Env,
-    db: import('pg').Pool,
+    private db: import('pg').Pool,
   ) {
     this.oauth = new OAuthRepository(db);
     this.cache = new ContributorCacheRepository(db);
     this.watchlist = new WatchlistRepository(db);
+    this.users = new UserRepository(db);
+  }
+
+  private normalizeUsername(username: string): string {
+    const normalized = username.trim().replace(/^@/, '').toLowerCase();
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/i.test(normalized)) {
+      throw new Error('Invalid GitHub username');
+    }
+    return normalized;
   }
 
   private async getToken(viewerUserId: string): Promise<string> {
@@ -31,18 +42,16 @@ export class ExploreService {
     return token;
   }
 
-  async lookup(viewerUserId: string, username: string): Promise<ContributorProfile> {
-    const normalized = username.trim().replace(/^@/, '').toLowerCase();
-    if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/i.test(normalized)) {
-      throw new Error('Invalid GitHub username');
-    }
-
-    const token = await this.getToken(viewerUserId);
+  private async fetchProfile(token: string, username: string): Promise<{
+    profile: ContributorProfile;
+    githubId: number | null;
+  }> {
+    const normalized = this.normalizeUsername(username);
     const gql = new GitHubGraphQL(token);
     const api = new GitHubApi(token);
 
-    const profile = await gql.fetchUserProfile(normalized);
-    if (!profile) {
+    const ghProfile = await gql.fetchUserProfile(normalized);
+    if (!ghProfile) {
       throw new Error(`GitHub user "${normalized}" not found`);
     }
 
@@ -83,19 +92,53 @@ export class ExploreService {
         (a.lastContributedAt ? Date.parse(a.lastContributedAt) : 0),
     );
 
-    const result: ContributorProfile = {
-      username: profile.login,
-      displayName: profile.name,
-      avatarUrl: profile.avatarUrl,
-      profileUrl: profile.url,
+    const profile: ContributorProfile = {
+      username: ghProfile.login,
+      displayName: ghProfile.name,
+      avatarUrl: ghProfile.avatarUrl,
+      profileUrl: ghProfile.url,
       stats: buildStats(repoNames.size, pullRequests, commitCount),
       repositories,
       analytics: buildAnalyticsBundle(pullRequests, events),
       syncedAt: new Date().toISOString(),
     };
 
-    await this.cache.upsert(result, profile.databaseId);
-    return result;
+    return { profile, githubId: ghProfile.databaseId };
+  }
+
+  async lookup(viewerUserId: string, username: string): Promise<ContributorProfile> {
+    const token = await this.getToken(viewerUserId);
+    const { profile, githubId } = await this.fetchProfile(token, username);
+    await this.cache.upsert(profile, githubId);
+    return profile;
+  }
+
+  async publicLookup(username: string): Promise<PublicProfile> {
+    const normalized = this.normalizeUsername(username);
+    const cached = await this.cache.findByUsername(normalized);
+    if (cached) {
+      return { ...cached, source: 'cache' };
+    }
+
+    const publicToken = this.env.GITHUB_PUBLIC_TOKEN;
+    if (!publicToken) {
+      throw new Error('Profile not available');
+    }
+
+    const { profile, githubId } = await this.fetchProfile(publicToken, normalized);
+    await this.cache.upsert(profile, githubId);
+    return { ...profile, source: 'live' };
+  }
+
+  async publishFromUser(userId: string): Promise<void> {
+    const user = await this.users.findById(userId);
+    if (!user) return;
+
+    try {
+      await this.lookup(userId, user.username);
+    } catch (err) {
+      console.error(`Portfolio publish failed for @${user.username}:`, err);
+    }
   }
 
   async watch(viewerUserId: string, username: string): Promise<ContributorProfile> {

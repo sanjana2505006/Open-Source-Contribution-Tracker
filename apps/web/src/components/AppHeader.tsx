@@ -33,8 +33,19 @@ export function AppHeader() {
         </span>
       </NavLink>
 
-      {user && (
-        <nav className="app-header__nav" aria-label="Main">
+      <nav className="app-header__nav" aria-label="Main">
+        {!user && (
+          <NavLink
+            to="/explore"
+            className={({ isActive }) =>
+              ['app-header__link', isActive && 'app-header__link--active'].filter(Boolean).join(' ')
+            }
+          >
+            Explore
+          </NavLink>
+        )}
+        {user && (
+          <>
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -57,8 +68,9 @@ export function AppHeader() {
               Admin
             </NavLink>
           )}
-        </nav>
-      )}
+          </>
+        )}
+      </nav>
 
       <div className="app-header__actions">
         <div className="app-header__theme">

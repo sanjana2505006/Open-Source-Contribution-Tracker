@@ -16,6 +16,7 @@ import { SyncJobRepository } from '../repositories/syncJobRepository.js';
 import { UserRepository } from '../repositories/userRepository.js';
 import { UserRepositoryLinkRepository } from '../repositories/userRepositoryLinkRepository.js';
 import { JourneyService } from './journeyService.js';
+import { ExploreService } from './exploreService.js';
 
 function prState(pr: GraphQLPullRequest): 'open' | 'closed' | 'merged' {
   if (pr.state === 'MERGED' || pr.merged) return 'merged';
@@ -67,7 +68,7 @@ export class SyncService {
 
   constructor(
     private env: Env,
-    db: import('pg').Pool,
+    private db: import('pg').Pool,
   ) {
     this.jobs = new SyncJobRepository(db);
     this.oauth = new OAuthRepository(db);
@@ -273,6 +274,8 @@ export class SyncService {
 
       const status = reposFailed > 0 || issueCount === 0 ? 'partial' : 'completed';
       await this.jobs.complete(jobId, status, completionMessage, null);
+
+      void new ExploreService(this.env, this.db).publishFromUser(userId);
 
       // Commits are slow — run after the job is marked complete so the UI stops spinning.
       void this.syncRecentCommits(userId, user.username, gql, jobId).catch((err) => {

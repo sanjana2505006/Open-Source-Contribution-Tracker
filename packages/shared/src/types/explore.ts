@@ -19,3 +19,7 @@ export type WatchedContributor = {
   stats: StatsSummary;
   syncedAt: string;
 };
+
+export type PublicProfile = ContributorProfile & {
+  source: 'cache' | 'live';
+};

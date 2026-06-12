@@ -10,6 +10,7 @@ import { DashboardHero } from '../components/hero/DashboardHero';
 import { Panel } from '../components/Panel';
 import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
+import { PortfolioSharePrompt } from '../components/PortfolioSharePrompt';
 import { SyncControls } from '../components/SyncControls';
 import { SystemStatus } from '../components/SystemStatus';
 import { fetchHealth, fetchRepositories, fetchStats } from '../lib/api';
@@ -159,7 +160,9 @@ export function OverviewPage() {
 
       {user && (
       <main className="page-main">
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <PortfolioSharePrompt username={user.username} />
+
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {loading || authLoading ? (
             <>
               <StatCardSkeleton />

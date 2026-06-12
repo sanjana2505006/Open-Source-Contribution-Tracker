@@ -13,7 +13,7 @@ export type {
   AnalyticsRange,
   AnalyticsBundle,
 } from './types/analytics.js';
-export type { ContributorProfile, WatchedContributor } from './types/explore.js';
+export type { ContributorProfile, PublicProfile, WatchedContributor } from './types/explore.js';
 export type {
   PullRequestItem,
   PullRequestList,

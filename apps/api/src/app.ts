@@ -15,6 +15,7 @@ import { createAuthRoutes, createUserRoutes } from './routes/auth.js';
 import { createSyncRoutes } from './routes/sync.js';
 import { createRepositoryRoutes } from './routes/repositories.js';
 import { createExploreRoutes } from './routes/explore.js';
+import { createPublicRoutes } from './routes/public.js';
 import { createPullRequestRoutes } from './routes/pullRequests.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
@@ -43,6 +44,7 @@ export function createApp(env: Env) {
   const repositoryRoutes = createRepositoryRoutes(pool);
   const analyticsRoutes = createAnalyticsRoutes(analytics, heatmap);
   const exploreRoutes = createExploreRoutes(explore);
+  const publicRoutes = createPublicRoutes(explore);
   const pullRequestRoutes = createPullRequestRoutes(pool);
   const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);
@@ -103,6 +105,10 @@ export function createApp(env: Env) {
   });
   app.get('/api/v1/analytics/heatmap', requireAuth, (req, res, next) => {
     analyticsRoutes.heatmap(req, res).catch(next);
+  });
+
+  app.get('/api/v1/public/profiles/:username', (req, res, next) => {
+    publicRoutes.profile(req, res).catch(next);
   });
 
   app.get('/api/v1/explore/:username', requireAuth, (req, res, next) => {
