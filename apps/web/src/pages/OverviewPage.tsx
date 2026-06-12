@@ -10,6 +10,7 @@ import { DashboardHero } from '../components/hero/DashboardHero';
 import { Panel } from '../components/Panel';
 import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
+import { LinkedInShareFab } from '../components/LinkedInShareFab';
 import { PortfolioSharePrompt } from '../components/PortfolioSharePrompt';
 import { SyncControls } from '../components/SyncControls';
 import { SystemStatus } from '../components/SystemStatus';
@@ -168,6 +169,7 @@ export function OverviewPage() {
       {!user && <LandingFeatures onLogin={login} />}
 
       {user && (
+      <>
       <main className="page-main">
         <PortfolioSharePrompt username={user.username} />
 
@@ -253,6 +255,15 @@ export function OverviewPage() {
           </div>
         )}
       </main>
+
+      <LinkedInShareFab
+        username={user.username}
+        displayName={user.displayName}
+        stats={stats}
+        streak={streak}
+        ready={!loading && !authLoading && Boolean(hasData)}
+      />
+      </>
       )}
 
       {!user && oauthError && (

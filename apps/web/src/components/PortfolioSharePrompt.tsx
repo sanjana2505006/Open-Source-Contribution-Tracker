@@ -1,37 +1,38 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { portfolioPath, portfolioUrl } from '../lib/portfolio';
+import { portfolioPath, sharePortfolioUrl } from '../lib/portfolio';
 
 type Props = {
   username: string;
 };
 
 export function PortfolioSharePrompt({ username }: Props) {
-  const [copied, setCopied] = useState(false);
-  const path = portfolioPath(username);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const shareUrl = sharePortfolioUrl(username);
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(portfolioUrl(username));
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+  async function copyShareLink() {
+    await navigator.clipboard.writeText(shareUrl);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
   }
 
   return (
-    <div className="portfolio-share-prompt">
+    <section className="portfolio-share-prompt">
       <div>
-        <p className="portfolio-share-prompt__title">Your public portfolio</p>
+        <p className="portfolio-share-prompt__title">Share with recruiters</p>
         <p className="portfolio-share-prompt__text">
-          Share your open source stats with recruiters — updates when you sync.
+          Your public portfolio — streak, PRs, and activity. Updates when you sync.
         </p>
+        <code className="share-progress-card__link">{shareUrl.replace(/^https?:\/\//, '')}</code>
       </div>
       <div className="portfolio-share-prompt__actions">
-        <Link to={path} className="btn btn-secondary text-sm">
+        <Link to={portfolioPath(username)} className="btn btn-secondary text-sm">
           View portfolio
         </Link>
-        <button type="button" onClick={copyLink} className="btn btn-primary text-sm">
-          {copied ? 'Link copied!' : 'Copy share link'}
+        <button type="button" onClick={copyShareLink} className="btn btn-primary text-sm">
+          {linkCopied ? 'Link copied!' : 'Copy share link'}
         </button>
       </div>
-    </div>
+    </section>
   );
 }

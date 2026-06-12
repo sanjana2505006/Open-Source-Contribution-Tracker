@@ -14,7 +14,7 @@ export type {
   AnalyticsBundle,
 } from './types/analytics.js';
 export type { FeedbackCategory, FeedbackItem, FeedbackList, FeedbackSubmit } from './types/feedback.js';
-export type { PortfolioInsights } from './types/portfolio.js';
+export type { PublicPortfolioHighlights, PortfolioInsights } from './types/portfolio.js';
 export type { ContributorProfile, PublicProfile, WatchedContributor } from './types/explore.js';
 export type {
   PullRequestItem,

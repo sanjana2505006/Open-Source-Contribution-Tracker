@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PublicProfile } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { ContributorDashboard } from '../components/ContributorDashboard';
-import { PublicStuckIssuesPanel } from '../components/PublicStuckIssuesPanel';
+import { PortfolioProgressBanner } from '../components/PortfolioProgressBanner';
+import { LinkedInShareFab } from '../components/LinkedInShareFab';
 import { SharePortfolioBar } from '../components/SharePortfolioBar';
 import { PageHeader } from '../components/PageHeader';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -42,6 +43,7 @@ export function PortfolioPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const isOwner = Boolean(user && username && user.username.toLowerCase() === username.toLowerCase());
+  const streak = profile?.highlights?.streak ?? null;
 
   usePageMeta({
     title: profile
@@ -50,9 +52,9 @@ export function PortfolioPage() {
         ? `@${username} — Portfolio`
         : 'Portfolio',
     description: profile
-      ? profile.insights?.stuckIssueCount
-        ? `${profile.stats.pullRequests} pull requests · ${profile.insights.stuckIssueCount} stuck issues · public portfolio on OSCT`
-        : `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories · public open source activity on OSCT`
+      ? streak && streak.currentStreak > 0
+        ? `${streak.currentStreak}-day streak · ${profile.stats.pullRequests} pull requests · open source portfolio on OSCT`
+        : `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories · open source portfolio on OSCT`
       : 'Public open source contribution portfolio on OSCT',
     image: profile?.avatarUrl,
   });
@@ -84,7 +86,8 @@ export function PortfolioPage() {
     setError(null);
     try {
       const data = await exploreUser(username);
-      setProfile({ ...data, source: 'live' });
+      const refreshed = await fetchPublicProfile(username);
+      setProfile({ ...data, source: 'live', highlights: refreshed.highlights });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Refresh failed');
     } finally {
@@ -111,7 +114,7 @@ export function PortfolioPage() {
       <PageHeader
         eyebrow="Public portfolio"
         title={profile?.displayName ?? `@${username}`}
-        description="Open source activity from public GitHub data — shareable with recruiters and collaborators."
+        description="Open source highlights — streak, PRs, and activity you can share with recruiters."
       />
 
       <main className="page-main space-y-6">
@@ -169,8 +172,8 @@ export function PortfolioPage() {
                 <p className="mt-1 text-[10px] font-medium text-[var(--color-muted)]">
                   Updated {new Date(profile.syncedAt).toLocaleString()}
                   {profile.source === 'cache' ? ' · cached' : ' · live'}
-                  {profile.insights && profile.insights.stuckIssueCount > 0 && (
-                    <> · {profile.insights.stuckIssueCount} stuck issues</>
+                  {streak && streak.currentStreak > 0 && (
+                    <> · {streak.currentStreak}-day streak</>
                   )}
                 </p>
               </div>
@@ -199,23 +202,31 @@ export function PortfolioPage() {
               </div>
             </div>
 
-            <SharePortfolioBar profile={profile} isOwner={isOwner} />
+            <SharePortfolioBar profile={profile} />
 
-            {!user && !profile.insights && (
-              <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-muted)]">
-                Viewing public GitHub activity only.{' '}
-                <button type="button" onClick={login} className="font-medium text-[var(--color-accent)] hover:underline">
-                  Sign in
-                </button>{' '}
-                to track your own issues, journey, and stuck-issue inbox.
+            <PortfolioProgressBanner profile={profile} streak={streak} />
+
+            {isOwner && (
+              <p className="text-xs text-[var(--color-muted)]">
+                Stuck issues are private — manage them in{' '}
+                <Link to="/issues?role=stuck" className="font-medium text-[var(--color-accent)] hover:underline">
+                  My Issues
+                </Link>
+                , not on your public portfolio.
               </p>
             )}
 
-            {profile.insights && (
-              <PublicStuckIssuesPanel insights={profile.insights} isOwner={isOwner} />
-            )}
-
             <ContributorDashboard profile={profile} statIcons={icons} />
+
+            {isOwner && (
+              <LinkedInShareFab
+                username={profile.username}
+                displayName={profile.displayName}
+                stats={profile.stats}
+                streak={streak}
+                ready
+              />
+            )}
           </>
         )}
       </main>

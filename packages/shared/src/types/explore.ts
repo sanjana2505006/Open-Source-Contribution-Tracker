@@ -1,5 +1,6 @@
 import type { AnalyticsBundle, PullRequestStats } from './analytics.js';
 import type { PortfolioInsights } from './portfolio.js';
+import type { PublicPortfolioHighlights } from './portfolio.js';
 import type { RepositorySummary, StatsSummary } from './sync.js';
 
 export type ContributorProfile = {
@@ -23,5 +24,7 @@ export type WatchedContributor = {
 
 export type PublicProfile = ContributorProfile & {
   source: 'cache' | 'live';
+  highlights?: PublicPortfolioHighlights;
+  /** @deprecated Use highlights — stuck issues are no longer public */
   insights?: PortfolioInsights;
 };

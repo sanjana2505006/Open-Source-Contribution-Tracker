@@ -26,7 +26,7 @@ import { SyncService } from './services/syncService.js';
 import { AnalyticsService } from './services/analyticsService.js';
 import { HeatmapService } from './services/heatmapService.js';
 import { ExploreService } from './services/exploreService.js';
-import { PortfolioInsightsService } from './services/portfolioInsightsService.js';
+import { PortfolioHighlightsService } from './services/portfolioHighlightsService.js';
 import { JourneyService } from './services/journeyService.js';
 import { getPool } from './infrastructure/db/pool.js';
 
@@ -38,7 +38,7 @@ export function createApp(env: Env) {
   const analytics = new AnalyticsService(pool);
   const heatmap = new HeatmapService(env, pool);
   const explore = new ExploreService(env, pool);
-  const portfolioInsights = new PortfolioInsightsService(pool);
+  const portfolioHighlights = new PortfolioHighlightsService(env, pool);
   const journey = new JourneyService(pool);
   const authRoutes = createAuthRoutes(auth, env);
   const userRoutes = createUserRoutes(env);
@@ -47,7 +47,7 @@ export function createApp(env: Env) {
   const repositoryRoutes = createRepositoryRoutes(pool);
   const analyticsRoutes = createAnalyticsRoutes(analytics, heatmap);
   const exploreRoutes = createExploreRoutes(explore);
-  const publicRoutes = createPublicRoutes(explore, portfolioInsights);
+  const publicRoutes = createPublicRoutes(explore, portfolioHighlights);
   const pullRequestRoutes = createPullRequestRoutes(pool);
   const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);

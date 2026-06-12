@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
 import type { ExploreService } from '../services/exploreService.js';
-import type { PortfolioInsightsService } from '../services/portfolioInsightsService.js';
+import type { PortfolioHighlightsService } from '../services/portfolioHighlightsService.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { RateLimitError } from '../services/exploreService.js';
 
 export function createPublicRoutes(
   explore: ExploreService,
-  insights: PortfolioInsightsService,
+  highlights: PortfolioHighlightsService,
 ) {
   return {
     async profile(req: Request, res: Response): Promise<void> {
@@ -14,15 +14,15 @@ export function createPublicRoutes(
       if (!username) throw new AppError(400, 'Username required', 'BAD_REQUEST');
 
       try {
-        const [profile, portfolioInsights] = await Promise.all([
+        const [profile, portfolioHighlights] = await Promise.all([
           explore.publicLookup(username),
-          insights.getInsights(username).catch(() => null),
+          highlights.getHighlights(username).catch(() => null),
         ]);
 
         res.json({
           data: {
             ...profile,
-            ...(portfolioInsights ? { insights: portfolioInsights } : {}),
+            ...(portfolioHighlights ? { highlights: portfolioHighlights } : {}),
           },
         });
       } catch (err) {
