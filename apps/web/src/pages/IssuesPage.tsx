@@ -44,6 +44,7 @@ export function IssuesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const role = parseRole(searchParams.get('role'));
   const status = parseStatus(searchParams.get('status'));
+  const selectedRepo = searchParams.get('repo')?.trim() ?? '';
 
   const [issues, setIssues] = useState<IssueItem[]>([]);
   const [counts, setCounts] = useState<IssueCounts>(DEFAULT_COUNTS);
@@ -58,7 +59,7 @@ export function IssuesPage() {
 
     setLoading(true);
     setError(null);
-    fetchIssues({ role, status })
+    fetchIssues({ role, status, repo: selectedRepo || undefined })
       .then((data) => {
         setIssues(data.items);
         setCounts(data.counts);
@@ -71,7 +72,7 @@ export function IssuesPage() {
         setError(err instanceof Error ? err.message : 'Failed to load issues');
       })
       .finally(() => setLoading(false));
-  }, [user, role, status]);
+  }, [user, role, status, selectedRepo]);
 
   useEffect(() => {
     loadIssues();
@@ -140,9 +141,11 @@ export function IssuesPage() {
         eyebrow="Issues"
         title="My Issues"
         description={
-          role === 'stuck'
-            ? 'Issues you commented on, were assigned, or opened — but nothing has moved in 30+ days.'
-            : "Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
+          selectedRepo
+            ? `Filtered to ${selectedRepo}${role === 'stuck' ? ' · stuck issues only' : ''}.`
+            : role === 'stuck'
+              ? 'Issues you commented on, were assigned, or opened — but nothing has moved in 30+ days.'
+              : "Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
         }
         actions={
           <button

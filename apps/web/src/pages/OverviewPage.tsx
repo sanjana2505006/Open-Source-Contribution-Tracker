@@ -235,7 +235,7 @@ export function OverviewPage() {
               title="Repositories"
               subtitle={
                 stats
-                  ? `${stats.repositories} total · click a repo to see your PRs`
+                  ? `${stats.repositories} total · click a repo for PRs, issues & activity`
                   : 'Click a repo to see your PRs'
               }
             >

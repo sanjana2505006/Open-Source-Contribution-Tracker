@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { PullRequestItem } from '@osct/shared';
 import { StatusBadge } from './StatusBadge';
+import { repoPath } from '../lib/repoPath';
 
 function statusLabel(pr: PullRequestItem): 'open' | 'merged' | 'closed' {
   if (pr.isMerged || pr.state === 'merged') return 'merged';
@@ -54,7 +55,7 @@ export function PullRequestTable({
               <StatusBadge status={status} />
               {showRepository && (
                 <Link
-                  to={`/repos?repo=${encodeURIComponent(pr.repositoryFullName)}`}
+                  to={repoPath(pr.repositoryFullName)}
                   className="shrink-0 rounded-md bg-[var(--color-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-accent)] hover:ring-[var(--color-accent)]/30"
                 >
                   {pr.repositoryFullName}

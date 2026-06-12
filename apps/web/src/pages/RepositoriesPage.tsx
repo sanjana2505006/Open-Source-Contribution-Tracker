@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { PullRequestCounts, PullRequestItem, PullRequestStatusFilter, RepositorySummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
@@ -8,6 +8,7 @@ import { Panel } from '../components/Panel';
 import { PullRequestStatusTabs } from '../components/PullRequestStatusTabs';
 import { PullRequestTable } from '../components/PullRequestTable';
 import { fetchPullRequests, fetchRepositories } from '../lib/api';
+import { repoPath } from '../lib/repoPath';
 
 const DEFAULT_COUNTS: PullRequestCounts = { all: 0, open: 0, merged: 0, closed: 0 };
 
@@ -23,6 +24,7 @@ function parseStatus(
 
 export function RepositoriesPage() {
   const { user, login } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedRepo = searchParams.get('repo') ?? '';
   const inboxMode = !selectedRepo;
@@ -35,6 +37,14 @@ export function RepositoriesPage() {
   const [filter, setFilter] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingPrs, setLoadingPrs] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const repoParam = searchParams.get('repo');
+    if (repoParam) {
+      navigate(repoPath(repoParam), { replace: true });
+    }
+  }, [user, searchParams, navigate]);
 
   const loadPrs = useCallback(() => {
     if (!user) return;
@@ -95,7 +105,7 @@ export function RepositoriesPage() {
   }
 
   function selectRepo(fullName: string) {
-    updateParams({ repo: fullName });
+    navigate(repoPath(fullName));
   }
 
   function setStatus(next: PullRequestStatusFilter) {

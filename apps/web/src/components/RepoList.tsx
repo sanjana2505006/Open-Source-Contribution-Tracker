@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { RepositorySummary } from '@osct/shared';
 import { languageColor } from '../lib/languageColors';
+import { repoPath } from '../lib/repoPath';
 
 type Props = {
   repos: RepositorySummary[];
@@ -16,7 +17,7 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
             <div className="min-w-0 flex-1">
               {linkToPrs ? (
                 <Link
-                  to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
+                  to={repoPath(repo.fullName)}
                   className="truncate text-sm font-medium transition-colors group-hover:text-[var(--color-accent)]"
                 >
                   {repo.fullName}
@@ -44,10 +45,10 @@ export function RepoList({ repos, linkToPrs = true }: Props) {
             <div className="flex shrink-0 items-center gap-2">
               {linkToPrs && (
                 <Link
-                  to={`/repos?repo=${encodeURIComponent(repo.fullName)}`}
+                  to={repoPath(repo.fullName)}
                   className="btn btn-ghost px-2 py-1 text-[11px] font-medium"
                 >
-                  PRs →
+                  View →
                 </Link>
               )}
               <a

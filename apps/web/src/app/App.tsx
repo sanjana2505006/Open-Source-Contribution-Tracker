@@ -11,6 +11,7 @@ import { AdminPage } from '../pages/AdminPage';
 import { PrivacyPage } from '../pages/PrivacyPage';
 import { SecurityPage } from '../pages/SecurityPage';
 import { PortfolioPage } from '../pages/PortfolioPage';
+import { RepoPage } from '../pages/RepoPage';
 
 export function App() {
   return (
@@ -23,6 +24,7 @@ export function App() {
               <Route path="explore" element={<ExplorePage />} />
               <Route path="u/:username" element={<PortfolioPage />} />
               <Route path="repos" element={<RepositoriesPage />} />
+              <Route path="repo/:owner/:name" element={<RepoPage />} />
               <Route path="issues" element={<IssuesPage />} />
               <Route path="journey" element={<JourneyPage />} />
               <Route path="admin" element={<AdminPage />} />
