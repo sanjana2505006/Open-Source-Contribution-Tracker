@@ -270,6 +270,96 @@ button:disabled {
   animation: spin 0.8s linear infinite;
 }
 
+/* —— Charts —— */
+
+.chart-shell {
+  position: relative;
+}
+
+.chart-svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart-bar {
+  cursor: pointer;
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+
+.chart-hit {
+  cursor: crosshair;
+}
+
+.chart-legend-swatch {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+}
+
+.chart-legend-swatch--pr {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-pr) 85%, white), var(--color-pr));
+}
+
+.chart-legend-swatch--commit {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-commit) 85%, white), var(--color-commit));
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  min-width: 7.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 12%, transparent);
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.chart-tooltip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chart-tooltip strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.chart-tooltip span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chart-tooltip i {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 2px;
+  font-style: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar,
+  .chart-tooltip {
+    transition: none;
+  }
+}
+
 /* —— Surfaces —— */
 
 .panel {

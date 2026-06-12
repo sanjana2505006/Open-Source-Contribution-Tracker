@@ -69,13 +69,13 @@ export function AdminPage() {
                 {data.totals.activeNow}
               </p>
             </Panel>
-            <Panel title="Total logins" subtitle="All sessions recorded">
+            <Panel title="Total logins" subtitle="Login events across all users (see Logins column)">
               <p className="px-4 pb-4 text-3xl font-semibold tabular-nums">{data.totals.logins}</p>
             </Panel>
           </section>
         )}
 
-        <Panel flush title="All users" subtitle="Login count and time on site">
+        <Panel flush title={`All users (${data?.totals.users ?? 0})`} subtitle="One row per user — Logins is how many times they signed in">
           {loading && <div className="px-4 py-8 text-sm text-[var(--color-muted)]">Loading…</div>}
 
           {!loading && data && data.users.length === 0 && (
