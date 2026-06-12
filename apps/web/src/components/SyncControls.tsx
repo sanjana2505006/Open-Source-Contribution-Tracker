@@ -77,12 +77,12 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
   const running = showSpinner;
 
   return (
-    <div className="flex min-w-[200px] flex-col items-end gap-2">
+    <div className="flex w-full min-w-[200px] max-w-[240px] flex-col items-center gap-2">
       <button
         type="button"
         onClick={handleSync}
         disabled={running}
-        className="btn btn-primary"
+        className="btn btn-primary w-full justify-center"
       >
         {running && (
           <svg className="h-4 w-4 animate-spin" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -100,20 +100,20 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
               style={{ width: `${Math.min(95, 15 + status.reposSynced * 2)}%` }}
             />
           </div>
-          <p className="mt-1.5 text-right text-[10px] font-medium text-[var(--color-muted)]">
+          <p className="mt-1.5 w-full text-center text-[10px] font-medium text-[var(--color-muted)]">
             {status.reposSynced > 0 ? `${status.reposSynced} items processed` : 'fetching from GitHub…'}
           </p>
         </div>
       )}
 
       {!running && status?.status === 'completed' && (
-        <p className="text-[10px] font-medium text-[var(--color-ok)]">last sync ok</p>
+        <p className="w-full text-center text-[10px] font-medium text-[var(--color-ok)]">last sync ok</p>
       )}
 
       {!running &&
         status?.status === 'partial' &&
         status.errorMessage?.startsWith('Synced ') && (
-          <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-ok)]">
+          <p className="w-full text-center text-[10px] font-medium leading-snug text-[var(--color-ok)]">
             {status.errorMessage}
           </p>
         )}
@@ -122,13 +122,13 @@ export function SyncControls({ onComplete }: SyncControlsProps) {
         status?.status === 'partial' &&
         status.errorMessage &&
         !status.errorMessage.startsWith('Synced ') && (
-        <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-warn)]">
+        <p className="w-full text-center text-[10px] font-medium leading-snug text-[var(--color-warn)]">
           {status.errorMessage}
         </p>
       )}
 
       {!running && status?.status === 'failed' && status.errorMessage && (
-        <p className="max-w-[240px] text-right text-[10px] font-medium leading-snug text-[var(--color-bad)]">
+        <p className="w-full text-center text-[10px] font-medium leading-snug text-[var(--color-bad)]">
           {status.errorMessage}
         </p>
       )}

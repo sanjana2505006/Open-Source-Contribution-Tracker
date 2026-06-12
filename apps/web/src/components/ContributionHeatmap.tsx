@@ -1,6 +1,7 @@
 import type { ContributionHeatmap, HeatmapDay, HeatmapWeek } from '@osct/shared';
-import { useMemo, useState, type FocusEvent, type MouseEvent } from 'react';
-import { HeatmapCrawlOverlay } from './HeatmapCrawlOverlay';
+import { useEffect, useMemo, useState, type CSSProperties, type FocusEvent, type MouseEvent } from 'react';
+import { HeatmapRevealOverlay } from './HeatmapRevealOverlay';
+import { revealIndex } from './heatmapReveal';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -68,6 +69,13 @@ function dayAppearance(day: HeatmapDay, inYear: boolean): {
   return { level: day.level };
 }
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 type Props = {
   data: ContributionHeatmap;
   loading?: boolean;
@@ -77,6 +85,20 @@ type Props = {
 export function ContributionHeatmap({ data, loading, onYearChange }: Props) {
   const labels = useMemo(() => monthLabels(data.weeks, data.year), [data.weeks, data.year]);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [revealing, setRevealing] = useState(false);
+
+  useEffect(() => {
+    if (loading || prefersReducedMotion() || data.weeks.length === 0) {
+      setRevealing(false);
+      return;
+    }
+
+    setRevealing(true);
+    const cellCount = data.weeks.length * 7;
+    const duration = Math.min(2200, cellCount * 1.8 + 400);
+    const timer = window.setTimeout(() => setRevealing(false), duration);
+    return () => window.clearTimeout(timer);
+  }, [loading, data.year, data.weeks]);
 
   function handleDayEnter(
     event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
@@ -120,22 +142,27 @@ export function ContributionHeatmap({ data, loading, onYearChange }: Props) {
             </div>
 
             <div className="contribution-heatmap__weeks-wrap">
-              <HeatmapCrawlOverlay weeks={data.weeks} year={data.year} active={!loading} />
-
               <div className={`contribution-heatmap__weeks${loading ? ' contribution-heatmap__weeks--loading' : ''}`}>
                 {data.weeks.map((week, weekIndex) => (
                   <div key={`week-${weekIndex}`} className="contribution-heatmap__week">
-                    {week.days.map((day) => {
+                    {week.days.map((day, dayIndex) => {
                       const inYear = day.date.startsWith(String(data.year));
                       const { level, color } = dayAppearance(day, inYear);
+                      const isActive = inYear && level > 0;
+                      const index = revealIndex(weekIndex, dayIndex);
 
                       return (
                         <button
                           key={`${weekIndex}-${day.date}`}
                           type="button"
-                          className="contribution-heatmap__day"
+                          className={`contribution-heatmap__day${revealing && isActive ? ' contribution-heatmap__day--reveal' : ''}`}
                           data-level={color ? undefined : level}
-                          style={color ? { backgroundColor: color } : undefined}
+                          style={{
+                            ...(color ? { backgroundColor: color } : {}),
+                            ...(revealing && isActive
+                              ? ({ '--reveal-i': index } as CSSProperties)
+                              : {}),
+                          }}
                           aria-label={inYear ? formatTooltip(day) : undefined}
                           onMouseEnter={(event) => handleDayEnter(event, day, inYear)}
                           onMouseLeave={() => setTooltip(null)}
@@ -147,6 +174,8 @@ export function ContributionHeatmap({ data, loading, onYearChange }: Props) {
                   </div>
                 ))}
               </div>
+
+              <HeatmapRevealOverlay weeks={data.weeks} year={data.year} active={!loading} />
             </div>
           </div>
         </div>

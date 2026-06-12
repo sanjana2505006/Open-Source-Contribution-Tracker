@@ -21,7 +21,7 @@ type SystemStatusProps = {
 export function SystemStatus({ health, error, loading }: SystemStatusProps) {
   if (loading) {
     return (
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-2">
         <span className="skeleton h-6 w-16 rounded-full" />
         <span className="skeleton h-6 w-20 rounded-full" />
       </div>
@@ -35,7 +35,7 @@ export function SystemStatus({ health, error, loading }: SystemStatusProps) {
   if (!health) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap justify-center gap-2">
       <StatusPill ok={health.status === 'ok'} label={`api ${health.status}`} />
       <StatusPill ok={health.db === 'up'} label={`db ${health.db}`} />
       {health.version && (

@@ -46,7 +46,7 @@ export function ContributionHeatmapPanel() {
   return (
     <Panel
       title="Contribution activity"
-      subtitle="GitHub-style daily heatmap"
+      subtitle="Your contribution trail through the year"
       className="contribution-heatmap-card"
       flush
     >

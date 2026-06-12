@@ -9,6 +9,7 @@ type Props = {
   footnote?: string;
   primaryAction?: ReactNode;
   secondaryAction?: ReactNode;
+  ctaNote?: ReactNode;
   meta?: ReactNode;
   fullScreen?: boolean;
   solo?: boolean;
@@ -22,6 +23,7 @@ export function DashboardHero({
   footnote,
   primaryAction,
   secondaryAction,
+  ctaNote,
   meta,
   fullScreen = false,
   solo = false,
@@ -66,6 +68,8 @@ export function DashboardHero({
             {secondaryAction}
           </div>
         )}
+
+        {ctaNote && <div className="hero-mirofish__cta-note">{ctaNote}</div>}
 
         {footnote && <p className="hero-mirofish__footnote">{footnote}</p>}
 
