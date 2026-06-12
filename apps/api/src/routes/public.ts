@@ -1,17 +1,30 @@
 import type { Request, Response } from 'express';
 import type { ExploreService } from '../services/exploreService.js';
+import type { PortfolioInsightsService } from '../services/portfolioInsightsService.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { RateLimitError } from '../services/exploreService.js';
 
-export function createPublicRoutes(explore: ExploreService) {
+export function createPublicRoutes(
+  explore: ExploreService,
+  insights: PortfolioInsightsService,
+) {
   return {
     async profile(req: Request, res: Response): Promise<void> {
       const username = req.params.username;
       if (!username) throw new AppError(400, 'Username required', 'BAD_REQUEST');
 
       try {
-        const data = await explore.publicLookup(username);
-        res.json({ data });
+        const [profile, portfolioInsights] = await Promise.all([
+          explore.publicLookup(username),
+          insights.getInsights(username).catch(() => null),
+        ]);
+
+        res.json({
+          data: {
+            ...profile,
+            ...(portfolioInsights ? { insights: portfolioInsights } : {}),
+          },
+        });
       } catch (err) {
         if (err instanceof RateLimitError) {
           throw new AppError(429, 'GitHub rate limit hit — try again later', 'RATE_LIMIT');

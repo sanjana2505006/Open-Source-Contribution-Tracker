@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PublicProfile } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { ContributorDashboard } from '../components/ContributorDashboard';
+import { PublicStuckIssuesPanel } from '../components/PublicStuckIssuesPanel';
 import { SharePortfolioBar } from '../components/SharePortfolioBar';
 import { PageHeader } from '../components/PageHeader';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -49,7 +50,9 @@ export function PortfolioPage() {
         ? `@${username} — Portfolio`
         : 'Portfolio',
     description: profile
-      ? `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories · public open source activity on OSCT`
+      ? profile.insights?.stuckIssueCount
+        ? `${profile.stats.pullRequests} pull requests · ${profile.insights.stuckIssueCount} stuck issues · public portfolio on OSCT`
+        : `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories · public open source activity on OSCT`
       : 'Public open source contribution portfolio on OSCT',
     image: profile?.avatarUrl,
   });
@@ -166,6 +169,9 @@ export function PortfolioPage() {
                 <p className="mt-1 text-[10px] font-medium text-[var(--color-muted)]">
                   Updated {new Date(profile.syncedAt).toLocaleString()}
                   {profile.source === 'cache' ? ' · cached' : ' · live'}
+                  {profile.insights && profile.insights.stuckIssueCount > 0 && (
+                    <> · {profile.insights.stuckIssueCount} stuck issues</>
+                  )}
                 </p>
               </div>
 
@@ -195,7 +201,7 @@ export function PortfolioPage() {
 
             <SharePortfolioBar profile={profile} isOwner={isOwner} />
 
-            {!user && (
+            {!user && !profile.insights && (
               <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-muted)]">
                 Viewing public GitHub activity only.{' '}
                 <button type="button" onClick={login} className="font-medium text-[var(--color-accent)] hover:underline">
@@ -203,6 +209,10 @@ export function PortfolioPage() {
                 </button>{' '}
                 to track your own issues, journey, and stuck-issue inbox.
               </p>
+            )}
+
+            {profile.insights && (
+              <PublicStuckIssuesPanel insights={profile.insights} isOwner={isOwner} />
             )}
 
             <ContributorDashboard profile={profile} statIcons={icons} />

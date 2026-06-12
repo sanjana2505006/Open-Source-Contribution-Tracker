@@ -13,6 +13,15 @@ export class UserRepository {
     return result.rows[0] ?? null;
   }
 
+  async findByUsername(username: string): Promise<DbUser | null> {
+    const result = await this.db.query<DbUser>(
+      `SELECT id, github_id, username, display_name, avatar_url, bio, email, profile_url, created_at
+       FROM users WHERE LOWER(username) = LOWER($1)`,
+      [username.trim().replace(/^@/, '')],
+    );
+    return result.rows[0] ?? null;
+  }
+
   async upsert(input: UpsertUserInput): Promise<DbUser> {
     const result = await this.db.query<DbUser>(
       `INSERT INTO users (github_id, username, display_name, avatar_url, bio, email, profile_url)
