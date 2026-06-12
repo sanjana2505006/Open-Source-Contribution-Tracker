@@ -30,6 +30,7 @@ export type {
 } from './types/issues.js';
 export type { MilestoneType, MilestoneItem, JourneyBundle } from './types/journey.js';
 export type { AdminUserRow, AdminUserList } from './types/admin.js';
+export type { ContributionStreak } from './types/streak.js';
 export type {
   HeatmapDay,
   HeatmapWeek,

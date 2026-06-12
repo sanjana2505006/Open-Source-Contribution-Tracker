@@ -1,4 +1,4 @@
-import type { AnalyticsBundle } from '@osct/shared';
+import type { AnalyticsBundle, ContributionStreak } from '@osct/shared';
 import { ActivityChart } from '../charts/ActivityChart';
 import { LanguageChart } from '../charts/LanguageChart';
 import { PullRequestChart } from '../charts/PullRequestChart';
@@ -8,7 +8,7 @@ import { DateRangeFilter, rangeToQuery, type RangePreset } from './DateRangeFilt
 import { useEffect, useState } from 'react';
 import { fetchAnalytics } from '../lib/api';
 
-export function AnalyticsPanel() {
+export function AnalyticsPanel({ streak }: { streak?: ContributionStreak | null }) {
   const [range, setRange] = useState<RangePreset>('12m');
   const [data, setData] = useState<AnalyticsBundle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export function AnalyticsPanel() {
 
       <div className="grid gap-4 lg:grid-cols-2">
       <div className="contribution-heatmap-wrap">
-        <ContributionHeatmapPanel />
+        <ContributionHeatmapPanel streak={streak} />
       </div>
 
         {loading && (

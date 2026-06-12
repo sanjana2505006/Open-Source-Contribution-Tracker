@@ -2,6 +2,7 @@ import type {
   AdminUserList,
   AnalyticsBundle,
   ContributionHeatmap,
+  ContributionStreak,
   HealthResponse,
   IssueList,
   IssueRoleFilter,
@@ -119,6 +120,10 @@ export function fetchHeatmap(year?: number): Promise<ContributionHeatmap> {
   if (year !== undefined) params.set('year', String(year));
   const qs = params.toString();
   return apiFetch<ContributionHeatmap>(`/api/v1/analytics/heatmap${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchStreak(): Promise<ContributionStreak> {
+  return apiFetch<ContributionStreak>('/api/v1/analytics/streak');
 }
 
 export type FetchPullRequestsOpts = {

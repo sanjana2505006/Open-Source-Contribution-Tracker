@@ -6,9 +6,10 @@ type StatCardProps = {
   accent: string;
   icon: ReactNode;
   delay?: string;
+  hint?: string;
 };
 
-export function StatCard({ label, value, accent, icon, delay = '' }: StatCardProps) {
+export function StatCard({ label, value, accent, icon, delay = '', hint }: StatCardProps) {
   return (
     <div
       className={`panel panel-interactive animate-fade-up relative overflow-hidden px-4 py-5 ${delay}`}
@@ -30,6 +31,7 @@ export function StatCard({ label, value, accent, icon, delay = '' }: StatCardPro
           >
             {value}
           </p>
+          {hint && <p className="mt-1 text-[11px] text-[var(--color-muted)]">{hint}</p>}
         </div>
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-[var(--color-border)]"

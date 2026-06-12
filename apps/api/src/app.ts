@@ -106,6 +106,9 @@ export function createApp(env: Env) {
   app.get('/api/v1/analytics/heatmap', requireAuth, (req, res, next) => {
     analyticsRoutes.heatmap(req, res).catch(next);
   });
+  app.get('/api/v1/analytics/streak', requireAuth, (req, res, next) => {
+    analyticsRoutes.streak(req, res).catch(next);
+  });
 
   app.get('/api/v1/public/profiles/:username', (req, res, next) => {
     publicRoutes.profile(req, res).catch(next);

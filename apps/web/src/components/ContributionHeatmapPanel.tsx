@@ -1,10 +1,10 @@
-import type { ContributionHeatmap } from '@osct/shared';
+import type { ContributionHeatmap, ContributionStreak } from '@osct/shared';
 import { useEffect, useState } from 'react';
 import { fetchHeatmap } from '../lib/api';
 import { ContributionHeatmap as HeatmapChart } from './ContributionHeatmap';
 import { Panel } from './Panel';
 
-export function ContributionHeatmapPanel() {
+export function ContributionHeatmapPanel({ streak }: { streak?: ContributionStreak | null }) {
   const [year, setYear] = useState<number | undefined>(undefined);
   const [data, setData] = useState<ContributionHeatmap | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,11 @@ export function ContributionHeatmapPanel() {
   return (
     <Panel
       title="Contribution activity"
-      subtitle="Your contribution trail through the year"
+      subtitle={
+        streak
+          ? `${streak.currentStreak}-day streak · longest ${streak.longestStreak} days`
+          : 'Your contribution trail through the year'
+      }
       className="contribution-heatmap-card"
       flush
     >

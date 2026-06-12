@@ -40,5 +40,17 @@ export function createAnalyticsRoutes(
         throw new AppError(502, message, 'HEATMAP_FAILED');
       }
     },
+
+    async streak(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      try {
+        const data = await heatmap.getStreak(req.user.id);
+        res.json({ data });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load streak';
+        throw new AppError(502, message, 'STREAK_FAILED');
+      }
+    },
   };
 }

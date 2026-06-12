@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { HealthResponse, RepositorySummary, StatsSummary } from '@osct/shared';
+import type { HealthResponse, RepositorySummary, StatsSummary, ContributionStreak } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { EmptyState } from '../components/EmptyState';
@@ -13,7 +13,7 @@ import { StatCard, StatCardSkeleton } from '../components/StatCard';
 import { PortfolioSharePrompt } from '../components/PortfolioSharePrompt';
 import { SyncControls } from '../components/SyncControls';
 import { SystemStatus } from '../components/SystemStatus';
-import { fetchHealth, fetchRepositories, fetchStats } from '../lib/api';
+import { fetchHealth, fetchRepositories, fetchStats, fetchStreak } from '../lib/api';
 
 function StatIcons() {
   return {
@@ -38,6 +38,11 @@ function StatIcons() {
         <path d="M8 0a8 8 0 100 16A8 8 0 008 0zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z" />
       </svg>
     ),
+    streak: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+        <path d="M8 14c-.55 0-1-.45-1-1 0-.28.12-.53.31-.71C5.78 11.53 4 9.13 4 6.5 4 3.46 6.46 1 9.5 1c2.02 0 3.86 1.05 4.91 2.74.32.52.15 1.2-.37 1.52A1.25 1.25 0 0113 5.5c0 .41-.2.78-.5 1.01.67.55 1 1.35 1 2.24 0 1.93-1.57 3.5-3.5 3.5H9.5c-.28.18-.5.43-.5.71 0 .55-.45 1-1 1z" />
+      </svg>
+    ),
   };
 }
 
@@ -47,6 +52,7 @@ export function OverviewPage() {
   const { user, loading: authLoading, login } = useAuth();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
+  const [streak, setStreak] = useState<ContributionStreak | null>(null);
   const [repos, setRepos] = useState<RepositorySummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,14 +62,17 @@ export function OverviewPage() {
     setHealth(healthData);
 
     if (user) {
-      const [statsData, repoData] = await Promise.all([
+      const [statsData, repoData, streakData] = await Promise.all([
         fetchStats(),
         fetchRepositories(),
+        fetchStreak().catch(() => null),
       ]);
       setStats(statsData);
       setRepos(repoData);
+      setStreak(streakData);
     } else {
       setStats(null);
+      setStreak(null);
       setRepos([]);
     }
   }, [user]);
@@ -162,9 +171,10 @@ export function OverviewPage() {
       <main className="page-main">
         <PortfolioSharePrompt username={user.username} />
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {loading || authLoading ? (
             <>
+              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -172,6 +182,19 @@ export function OverviewPage() {
             </>
           ) : (
             <>
+              <StatCard
+                label="Current streak"
+                value={streak ? `${streak.currentStreak}d` : '—'}
+                accent="var(--color-ok)"
+                icon={icons.streak}
+                hint={
+                  streak
+                    ? streak.activeThisWeek
+                      ? `Longest: ${streak.longestStreak} days · active this week`
+                      : `Longest: ${streak.longestStreak} days`
+                    : undefined
+                }
+              />
               <StatCard
                 label="Pull requests"
                 value={stats?.pullRequests ?? '—'}
@@ -203,7 +226,7 @@ export function OverviewPage() {
           )}
         </section>
 
-        {user && <AnalyticsPanel />}
+        {user && <AnalyticsPanel streak={streak} />}
 
         {user && repos.length > 0 && (
           <div className="mt-8 animate-fade-up">
