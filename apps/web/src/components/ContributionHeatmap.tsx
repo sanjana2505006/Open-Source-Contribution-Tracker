@@ -1,5 +1,6 @@
 import type { ContributionHeatmap, HeatmapDay, HeatmapWeek } from '@osct/shared';
 import { useMemo, useState, type FocusEvent, type MouseEvent } from 'react';
+import { HeatmapCrawlOverlay } from './HeatmapCrawlOverlay';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -118,30 +119,34 @@ export function ContributionHeatmap({ data, loading, onYearChange }: Props) {
               <span />
             </div>
 
-            <div className={`contribution-heatmap__weeks${loading ? ' contribution-heatmap__weeks--loading' : ''}`}>
-              {data.weeks.map((week, weekIndex) => (
-                <div key={`week-${weekIndex}`} className="contribution-heatmap__week">
-                  {week.days.map((day) => {
-                    const inYear = day.date.startsWith(String(data.year));
-                    const { level, color } = dayAppearance(day, inYear);
+            <div className="contribution-heatmap__weeks-wrap">
+              <HeatmapCrawlOverlay weeks={data.weeks} year={data.year} active={!loading} />
 
-                    return (
-                      <button
-                        key={`${weekIndex}-${day.date}`}
-                        type="button"
-                        className="contribution-heatmap__day"
-                        data-level={color ? undefined : level}
-                        style={color ? { backgroundColor: color } : undefined}
-                        aria-label={inYear ? formatTooltip(day) : undefined}
-                        onMouseEnter={(event) => handleDayEnter(event, day, inYear)}
-                        onMouseLeave={() => setTooltip(null)}
-                        onFocus={(event) => handleDayEnter(event, day, inYear)}
-                        onBlur={() => setTooltip(null)}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
+              <div className={`contribution-heatmap__weeks${loading ? ' contribution-heatmap__weeks--loading' : ''}`}>
+                {data.weeks.map((week, weekIndex) => (
+                  <div key={`week-${weekIndex}`} className="contribution-heatmap__week">
+                    {week.days.map((day) => {
+                      const inYear = day.date.startsWith(String(data.year));
+                      const { level, color } = dayAppearance(day, inYear);
+
+                      return (
+                        <button
+                          key={`${weekIndex}-${day.date}`}
+                          type="button"
+                          className="contribution-heatmap__day"
+                          data-level={color ? undefined : level}
+                          style={color ? { backgroundColor: color } : undefined}
+                          aria-label={inYear ? formatTooltip(day) : undefined}
+                          onMouseEnter={(event) => handleDayEnter(event, day, inYear)}
+                          onMouseLeave={() => setTooltip(null)}
+                          onFocus={(event) => handleDayEnter(event, day, inYear)}
+                          onBlur={() => setTooltip(null)}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

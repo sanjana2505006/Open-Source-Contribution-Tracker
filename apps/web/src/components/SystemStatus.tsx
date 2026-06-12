@@ -38,6 +38,11 @@ export function SystemStatus({ health, error, loading }: SystemStatusProps) {
     <div className="flex flex-wrap gap-2">
       <StatusPill ok={health.status === 'ok'} label={`api ${health.status}`} />
       <StatusPill ok={health.db === 'up'} label={`db ${health.db}`} />
+      {health.version && (
+        <span className="text-[10px] font-medium text-[var(--color-muted)]">
+          v{health.version}
+        </span>
+      )}
     </div>
   );
 }
