@@ -20,6 +20,7 @@ import { createPullRequestRoutes } from './routes/pullRequests.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
 import { createJourneyRoutes } from './routes/journey.js';
+import { createFeedbackRoutes } from './routes/feedback.js';
 import { AuthService } from './services/authService.js';
 import { SyncService } from './services/syncService.js';
 import { AnalyticsService } from './services/analyticsService.js';
@@ -50,6 +51,7 @@ export function createApp(env: Env) {
   const pullRequestRoutes = createPullRequestRoutes(pool);
   const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);
+  const feedbackRoutes = createFeedbackRoutes(pool);
 
   const app = express();
 
@@ -82,6 +84,13 @@ export function createApp(env: Env) {
 
   app.get('/api/v1/admin/users', requireAuth, requireAdmin(env), (req, res, next) => {
     adminRoutes.users(req, res).catch(next);
+  });
+  app.get('/api/v1/admin/feedback', requireAuth, requireAdmin(env), (req, res, next) => {
+    adminRoutes.feedbackList(req, res).catch(next);
+  });
+
+  app.post('/api/v1/feedback', (req, res, next) => {
+    feedbackRoutes.submit(req, res).catch(next);
   });
 
   app.post('/api/v1/sync', requireAuth, (req, res, next) => {

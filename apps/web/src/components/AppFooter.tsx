@@ -16,6 +16,12 @@ export function AppFooter() {
         <Link to="/security" className="app-footer__link">
           Security
         </Link>
+        <span className="app-footer__sep" aria-hidden>
+          ·
+        </span>
+        <Link to="/feedback" className="app-footer__link">
+          Feedback
+        </Link>
       </nav>
     </footer>
   );

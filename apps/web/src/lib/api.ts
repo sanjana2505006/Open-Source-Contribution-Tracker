@@ -3,6 +3,8 @@ import type {
   AnalyticsBundle,
   ContributionHeatmap,
   ContributionStreak,
+  FeedbackList,
+  FeedbackSubmit,
   HealthResponse,
   IssueList,
   IssueRoleFilter,
@@ -164,4 +166,22 @@ export function fetchJourney(): Promise<JourneyBundle> {
 
 export function fetchAdminUsers(): Promise<AdminUserList> {
   return apiFetch<AdminUserList>('/api/v1/admin/users');
+}
+
+export function fetchAdminFeedback(limit = 50): Promise<FeedbackList> {
+  return apiFetch<FeedbackList>(`/api/v1/admin/feedback?limit=${limit}`);
+}
+
+export function submitFeedback(input: FeedbackSubmit): Promise<void> {
+  return fetch('/api/v1/feedback', {
+    ...fetchOpts,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).then(async (res) => {
+    if (!res.ok) {
+      const body = (await res.json()) as ApiError;
+      throw new Error(body.error?.message ?? 'Failed to send feedback');
+    }
+  });
 }

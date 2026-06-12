@@ -10,6 +10,7 @@ import { JourneyPage } from '../pages/JourneyPage';
 import { AdminPage } from '../pages/AdminPage';
 import { PrivacyPage } from '../pages/PrivacyPage';
 import { SecurityPage } from '../pages/SecurityPage';
+import { FeedbackPage } from '../pages/FeedbackPage';
 import { PortfolioPage } from '../pages/PortfolioPage';
 import { RepoPage } from '../pages/RepoPage';
 
@@ -30,6 +31,7 @@ export function App() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="privacy" element={<PrivacyPage />} />
               <Route path="security" element={<SecurityPage />} />
+              <Route path="feedback" element={<FeedbackPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import type { AdminUserList } from '@osct/shared';
+import type { AdminUserList, FeedbackList } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
-import { fetchAdminUsers } from '../lib/api';
+import { fetchAdminFeedback, fetchAdminUsers } from '../lib/api';
 
 function formatDuration(totalSeconds: number): string {
   if (totalSeconds < 60) return `${totalSeconds}s`;
@@ -22,9 +22,23 @@ function formatWhen(iso: string | null): string {
   return new Date(iso).toLocaleString();
 }
 
+function categoryLabel(category: string): string {
+  switch (category) {
+    case 'bug':
+      return 'Bug';
+    case 'feature':
+      return 'Feature';
+    case 'praise':
+      return 'Praise';
+    default:
+      return 'General';
+  }
+}
+
 export function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<AdminUserList | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,10 +46,13 @@ export function AdminPage() {
     if (!user?.isAdmin) return;
 
     setLoading(true);
-    fetchAdminUsers()
-      .then(setData)
+    Promise.all([fetchAdminUsers(), fetchAdminFeedback()])
+      .then(([users, feedbackData]) => {
+        setData(users);
+        setFeedback(feedbackData);
+      })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to load users');
+        setError(err instanceof Error ? err.message : 'Failed to load admin data');
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -53,7 +70,7 @@ export function AdminPage() {
       <PageHeader
         eyebrow="Admin"
         title="Users"
-        description="Who signed in, how often, and roughly how long they spent on the site."
+        description="Who signed in, how often, and feedback people send from the site."
       />
 
       <main className="page-main space-y-4">
@@ -141,6 +158,41 @@ export function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </Panel>
+
+        <Panel flush title={`Feedback (${feedback?.total ?? 0})`} subtitle="From /feedback — newest first">
+          {loading && <div className="px-4 py-8 text-sm text-[var(--color-muted)]">Loading…</div>}
+
+          {!loading && feedback && feedback.items.length === 0 && (
+            <p className="px-4 py-8 text-sm text-[var(--color-muted)]">No feedback yet.</p>
+          )}
+
+          {!loading && feedback && feedback.items.length > 0 && (
+            <div className="admin-feedback-list">
+              {feedback.items.map((item) => (
+                <article key={item.id} className="admin-feedback-item">
+                  <div className="admin-feedback-item__meta">
+                    <span className="badge badge-open">{categoryLabel(item.category)}</span>
+                    {item.rating != null && (
+                      <span className="text-xs text-[var(--color-warn)]">
+                        {'★'.repeat(item.rating)}
+                        {'☆'.repeat(5 - item.rating)}
+                      </span>
+                    )}
+                    <time dateTime={item.createdAt} className="text-xs text-[var(--color-muted)]">
+                      {formatWhen(item.createdAt)}
+                    </time>
+                  </div>
+                  <p className="admin-feedback-item__message">{item.message}</p>
+                  <p className="admin-feedback-item__footer">
+                    {item.username ? `@${item.username}` : 'Anonymous'}
+                    {item.email ? ` · ${item.email}` : ''}
+                    {item.pageUrl ? ` · from ${item.pageUrl}` : ''}
+                  </p>
+                </article>
+              ))}
             </div>
           )}
         </Panel>
