@@ -1696,6 +1696,15 @@ button:disabled {
   height: 100%;
 }
 
+.glitter-trail {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .hero-mirofish__center {
   position: relative;
   z-index: 3;
