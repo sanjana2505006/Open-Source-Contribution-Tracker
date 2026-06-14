@@ -1856,6 +1856,12 @@ html.custom-cursor-mode *::after {
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+.hero-cta svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 .hero-cta:hover {
   transform: translateY(-1px);
 }
@@ -1961,11 +1967,11 @@ html.custom-cursor-mode *::after {
   margin-bottom: var(--shadow-jitter, 0);
   filter: grayscale(1) brightness(0) contrast(1.1);
   opacity: 0;
-  transform: translateX(var(--enter-x, 0)) translateY(20px) scale(0.9);
+  transform: translateX(var(--enter-x, -20vw)) translateY(24px) scale(0.78);
 }
 
 .hero-crowd__shadow-wrap--enter {
-  animation: crowd-shadow-assemble 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: crowd-shadow-assemble 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--assemble-delay, 0s);
 }
 
@@ -1989,10 +1995,6 @@ html.custom-cursor-mode *::after {
 }
 
 @keyframes crowd-shadow-assemble {
-  from {
-    opacity: 0;
-    transform: translateX(var(--enter-x, -100px)) translateY(24px) scale(0.78);
-  }
   to {
     opacity: 1;
     transform: translateX(0) translateY(0) scale(1);
@@ -2030,11 +2032,11 @@ html.custom-cursor-mode *::after {
   flex-shrink: 0;
   filter: grayscale(1) contrast(1.05);
   opacity: 0;
-  transform: translateX(var(--enter-x, 0)) translateY(28px) scale(0.88);
+  transform: translateX(var(--enter-x, -20vw)) translateY(32px) scale(0.82);
 }
 
 .hero-crowd__figure-wrap--enter {
-  animation: crowd-assemble 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: crowd-assemble 1.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--assemble-delay, 0s);
 }
 
@@ -2065,10 +2067,6 @@ html.custom-cursor-mode *::after {
 }
 
 @keyframes crowd-assemble {
-  from {
-    opacity: 0;
-    transform: translateX(var(--enter-x, -120px)) translateY(36px) scale(0.82);
-  }
   to {
     opacity: 1;
     transform: translateX(0) translateY(0) scale(1);

@@ -25,18 +25,25 @@ const SHADOW_LAYERS: LayerConfig[] = [
   { id: 'shadow-near', depth: 0.28, scale: 0.62, opacity: 1, blur: 1.5, lift: 10, count: 16, delay: 0.08 },
 ];
 
-/** Slide distance from left or right based on seat in the row. */
-function enterOffset(index: number, total: number, depth: number, spreadBoost = 1): number {
+/** Horizontal start position — vw so the slide-in stays visible on screen. */
+function enterOffset(
+  index: number,
+  total: number,
+  depth: number,
+  spreadBoost = 1,
+): string {
   const center = (total - 1) / 2;
-  const spread = (1.35 + (1 - depth) * 0.65) * spreadBoost;
+  const spread = (0.8 + (1 - depth) * 0.35) * spreadBoost;
+  const edge = Math.abs(index - center) / Math.max(center, 1);
+  const distance = (16 + edge * 26) * spread;
 
   if (index < center) {
-    return (-200 - (center - index) * 72) * spread;
+    return `-${distance}vw`;
   }
   if (index > center) {
-    return (200 + (index - center) * 72) * spread;
+    return `${distance}vw`;
   }
-  return index % 2 === 0 ? -120 * spread : 120 * spread;
+  return index % 2 === 0 ? `-${12 * spread}vw` : `${12 * spread}vw`;
 }
 
 type FigureProps = { className?: string; style?: React.CSSProperties };
@@ -73,7 +80,7 @@ function CrowdLayer({
       <div className="hero-crowd__row">
         {figures.map((Figure, i) => {
           const wrapStyle = {
-            '--enter-x': `${enterOffset(i, figures.length, layer.depth)}px`,
+            '--enter-x': enterOffset(i, figures.length, layer.depth),
             '--assemble-delay': `${i * 0.065 + layer.delay}s`,
           } as CSSProperties;
 
@@ -136,7 +143,7 @@ function CrowdShadowLayer({
       <div className="hero-crowd__shadow-row">
         {figures.map((Figure, i) => {
           const wrapStyle = {
-            '--enter-x': `${enterOffset(i, figures.length, layer.depth, 1.85)}px`,
+            '--enter-x': enterOffset(i, figures.length, layer.depth, 1.45),
             '--assemble-delay': `${i * 0.04 + layer.delay}s`,
             '--shadow-jitter': `${((i * 7) % 5) - 2}px`,
             zIndex: i % 3,

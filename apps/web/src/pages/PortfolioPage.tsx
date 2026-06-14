@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PublicProfile } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { ContributorDashboard } from '../components/ContributorDashboard';
+import { PullRequestIcon } from '../components/icons/PullRequestIcon';
 import { PortfolioProgressBanner } from '../components/PortfolioProgressBanner';
 import { LinkedInShareFab } from '../components/LinkedInShareFab';
 import { SharePortfolioBar } from '../components/SharePortfolioBar';
@@ -13,11 +14,7 @@ import { fetchPublicProfile } from '../lib/portfolio';
 
 function StatIcons() {
   return {
-    pr: (
-      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5zM14.25 6a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5a.75.75 0 01.75-.75zm-2-2.5a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5z" />
-      </svg>
-    ),
+    pr: <PullRequestIcon />,
     repo: (
       <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
         <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-7a1 1 0 00-1 1v1H4.5a.75.75 0 010-1.5H6V3.25a.5.5 0 01.5-.5h7v9h-7a2.5 2.5 0 01-2.5-2.5V2.5z" />

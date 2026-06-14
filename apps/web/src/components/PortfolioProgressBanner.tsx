@@ -1,4 +1,5 @@
 import type { ContributionStreak, ContributorProfile } from '@osct/shared';
+import { PullRequestIcon } from './icons/PullRequestIcon';
 import { StatCard } from './StatCard';
 
 type Props = {
@@ -41,11 +42,7 @@ export function PortfolioProgressBanner({ profile, streak }: Props) {
           label="Pull requests"
           value={stats.pullRequests}
           accent="var(--color-pr)"
-          icon={
-            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-              <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5zM14.25 6a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5a.75.75 0 01.75-.75zm-2-2.5a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5z" />
-            </svg>
-          }
+          icon={<PullRequestIcon />}
         />
         <StatCard
           label="Repositories"

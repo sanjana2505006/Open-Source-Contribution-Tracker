@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { HealthResponse, RepositorySummary, StatsSummary, ContributionStreak } from '@osct/shared';
+import type { RepositorySummary, StatsSummary, ContributionStreak } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { EmptyState } from '../components/EmptyState';
@@ -12,17 +12,13 @@ import { RepoList } from '../components/RepoList';
 import { StatCard, StatCardSkeleton } from '../components/StatCard';
 import { LinkedInShareFab } from '../components/LinkedInShareFab';
 import { PortfolioSharePrompt } from '../components/PortfolioSharePrompt';
+import { PullRequestIcon } from '../components/icons/PullRequestIcon';
 import { SyncControls } from '../components/SyncControls';
-import { SystemStatus } from '../components/SystemStatus';
-import { fetchHealth, fetchRepositories, fetchStats, fetchStreak } from '../lib/api';
+import { fetchRepositories, fetchStats, fetchStreak } from '../lib/api';
 
 function StatIcons() {
   return {
-    pr: (
-      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5zM14.25 6a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5a.75.75 0 01.75-.75zm-2-2.5a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5z" />
-      </svg>
-    ),
+    pr: <PullRequestIcon />,
     repo: (
       <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
         <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-7a1 1 0 00-1 1v1H4.5a.75.75 0 010-1.5H6V3.25a.5.5 0 01.5-.5h7v9h-7a2.5 2.5 0 01-2.5-2.5V2.5z" />
@@ -51,45 +47,35 @@ const icons = StatIcons();
 
 export function OverviewPage() {
   const { user, loading: authLoading, login } = useAuth();
-  const [health, setHealth] = useState<HealthResponse | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [streak, setStreak] = useState<ContributionStreak | null>(null);
   const [repos, setRepos] = useState<RepositorySummary[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    const healthData = await fetchHealth();
-    setHealth(healthData);
-
-    if (user) {
-      const [statsData, repoData, streakData] = await Promise.all([
-        fetchStats(),
-        fetchRepositories(),
-        fetchStreak().catch(() => null),
-      ]);
-      setStats(statsData);
-      setRepos(repoData);
-      setStreak(streakData);
-    } else {
+    if (!user) {
       setStats(null);
       setStreak(null);
       setRepos([]);
+      return;
     }
+
+    const [statsData, repoData, streakData] = await Promise.all([
+      fetchStats(),
+      fetchRepositories(),
+      fetchStreak().catch(() => null),
+    ]);
+    setStats(statsData);
+    setRepos(repoData);
+    setStreak(streakData);
   }, [user]);
 
   useEffect(() => {
     let cancelled = false;
 
-    loadData()
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'request failed');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    loadData().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
 
     return () => {
       cancelled = true;
@@ -141,9 +127,7 @@ export function OverviewPage() {
         secondaryAction={
           user ? (
             <Link to="/repos" className="hero-cta hero-cta--secondary">
-              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                <path d="M1.5 3.25a2.25 2.25 0 113 0v5.5a.75.75 0 01-1.5 0v-5.5a.75.75 0 00-1.5 0v8.5a2.25 2.25 0 105.5 0V7a.75.75 0 011.5 0v2.75a3.75 3.75 0 11-7.5 0v-6.5zM14.25 6a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5a.75.75 0 01.75-.75zm-2-2.5a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5z" />
-              </svg>
+              <PullRequestIcon />
               My PRs
             </Link>
           ) : (
@@ -155,7 +139,6 @@ export function OverviewPage() {
             </Link>
           )
         }
-        meta={user ? <SystemStatus health={health} error={error} loading={loading} /> : undefined}
       >
         {!user && (
           <ul className="hero-mirofish__features">
