@@ -14,7 +14,7 @@ type Sparkle = {
   shape: 'star' | 'dot';
 };
 
-const GLITTER_COLORS = ['#ffe566', '#ffb8e8', '#ffffff', '#b8e0ff', '#d4b5ff', '#88d4ff', '#ffd1a8'];
+const TRAIL_COLORS = ['#58a6ff', '#7eb8ff', '#a371f7', '#3fb950', '#388bfd'];
 
 function drawStar(
   ctx: CanvasRenderingContext2D,
@@ -77,24 +77,24 @@ function drawDot(
 }
 
 function spawnBurst(sparkles: Sparkle[], x: number, y: number, intensity: number) {
-  const count = Math.min(10, 3 + Math.floor(intensity * 4));
+  const count = Math.min(6, 2 + Math.floor(intensity * 2.5));
 
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 0.6 + Math.random() * 1.8 * intensity;
+    const speed = 0.4 + Math.random() * 1.2 * intensity;
 
     sparkles.push({
-      x: x + (Math.random() - 0.5) * 6,
-      y: y + (Math.random() - 0.5) * 6,
+      x: x + (Math.random() - 0.5) * 4,
+      y: y + (Math.random() - 0.5) * 4,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 0.3,
+      vy: Math.sin(angle) * speed - 0.15,
       life: 0,
-      maxLife: 0.5 + Math.random() * 0.9,
-      size: 1.2 + Math.random() * 2.8,
-      color: GLITTER_COLORS[Math.floor(Math.random() * GLITTER_COLORS.length)]!,
+      maxLife: 0.35 + Math.random() * 0.55,
+      size: 0.9 + Math.random() * 1.8,
+      color: TRAIL_COLORS[Math.floor(Math.random() * TRAIL_COLORS.length)]!,
       rotation: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 5,
-      shape: Math.random() > 0.45 ? 'star' : 'dot',
+      spin: (Math.random() - 0.5) * 3,
+      shape: 'dot',
     });
   }
 }

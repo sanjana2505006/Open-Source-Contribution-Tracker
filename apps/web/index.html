@@ -20,6 +20,12 @@
               ? 'dark'
               : 'light';
         document.documentElement.setAttribute('data-theme', theme);
+
+        var finePointer = window.matchMedia('(pointer: fine)').matches;
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (finePointer && !reduceMotion) {
+          document.documentElement.classList.add('custom-cursor-mode');
+        }
       })();
     </script>
   </head>

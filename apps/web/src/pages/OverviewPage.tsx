@@ -122,7 +122,7 @@ export function OverviewPage() {
         }
         footnote={
           user
-            ? 'Move your mouse — fairy dust follows you ✨'
+            ? 'Move your mouse — the network shifts with you ✨'
             : 'Scroll to see what you get ↓'
         }
         primaryAction={
