@@ -10,8 +10,8 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg className="theme-switch__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-      <path d="M9.598 1.591a.749.749 0 01.785-.175 7.001 7.001 0 011.045 3.661c0 3.898-3.182 7.078-7.078 7.078a7.044 7.044 0 01-3.661-1.045.749.749 0 01-.175-.785 6.473 6.473 0 001.985 1.985.749.749 0 00.785-.175A5.977 5.977 0 0012.5 7.5a5.977 5.977 0 00-1.985-1.985.749.749 0 00-.175-.785 6.473 6.473 0 00-1.742 1.861z" />
+    <svg className="theme-switch__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
