@@ -1354,17 +1354,30 @@ button:disabled {
 
 .app-footer__links {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 .app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.8125rem;
   color: var(--color-muted);
   text-decoration: none;
   transition: color 0.15s ease;
+}
+
+.app-footer__link--linkedin:hover {
+  color: #0a66c2;
+}
+
+.app-footer__icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
 }
 
 .app-footer__link:hover {
@@ -1376,28 +1389,6 @@ button:disabled {
   font-size: 0.8125rem;
   color: var(--color-border);
   user-select: none;
-}
-
-.app-footer__text {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--color-muted);
-}
-
-.app-footer__heart {
-  display: inline-block;
-  color: var(--color-bad);
-  animation: footer-heart 1.4s ease-in-out infinite;
-}
-
-@keyframes footer-heart {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.12);
-  }
 }
 
 .legal-page {
