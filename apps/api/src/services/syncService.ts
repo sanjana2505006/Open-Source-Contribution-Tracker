@@ -1,6 +1,6 @@
 import type { StatsSummary, SyncStatus } from '@osct/shared';
 import type { Env } from '../config/env.js';
-import { GitHubApi, RateLimitError, type GitHubRepo, type GitHubSearchIssue } from '../infrastructure/github/api.js';
+import { GitHubApi, RateLimitError, type GitHubEvent, type GitHubRepo, type GitHubSearchIssue } from '../infrastructure/github/api.js';
 import {
   GitHubGraphQL,
   graphRepoToGitHubRepo,
@@ -88,12 +88,14 @@ export class SyncService {
   }
 
   async getStats(userId: string): Promise<StatsSummary> {
-    const stats = await this.userRepos.getStats(userId);
+    let stats = await this.userRepos.getStats(userId);
     if (stats.commits > 0) return stats;
 
     try {
       const total = await this.refreshCommitCount(userId);
       if (total > 0) {
+        stats = await this.userRepos.getStats(userId);
+        if (stats.commits > 0) return stats;
         return { ...stats, commits: total };
       }
     } catch (err) {
@@ -459,7 +461,7 @@ export class SyncService {
     const repos = await this.userRepos.listForUser(userId, 1);
     if (!repos.length) {
       console.error(`Commit sync for ${username}: no linked repos to attach summary row`);
-      return 0;
+      return total;
     }
 
     try {
@@ -473,7 +475,8 @@ export class SyncService {
       return total;
     } catch (err) {
       console.error(`Commit sync for ${username}: failed to save total ${total}:`, err);
-      return 0;
+      // Still return total so the stats API can show it this request.
+      return total;
     }
   }
 
@@ -482,9 +485,16 @@ export class SyncService {
     gql: GitHubGraphQL,
     api: GitHubApi,
   ): Promise<number> {
-    for (const asViewer of [true, false]) {
+    // Same pattern as heatmap/streak: user(login) with the signed-in token.
+    for (const asViewer of [false, true]) {
       try {
-        let total = await gql.getTotalCommitContributions(username, 1, asViewer);
+        let total = await gql.getDefaultTotalCommitContributions(
+          asViewer ? null : username,
+          asViewer,
+        );
+        if (total <= 0) {
+          total = await gql.getTotalCommitContributions(username, 1, asViewer);
+        }
         if (total <= 0) {
           total = await gql.sumCommitContributions(username, 1, asViewer);
         }
@@ -503,7 +513,7 @@ export class SyncService {
     if (this.env.GITHUB_PUBLIC_TOKEN) {
       try {
         const publicGql = new GitHubGraphQL(this.env.GITHUB_PUBLIC_TOKEN);
-        let total = await publicGql.getTotalCommitContributions(username, 1, false);
+        let total = await publicGql.getDefaultTotalCommitContributions(username, false);
         if (total <= 0) {
           total = await publicGql.sumCommitContributions(username, 1, false);
         }
@@ -524,16 +534,39 @@ export class SyncService {
   }
 
   private async countCommitsFromPushEvents(username: string, api: GitHubApi): Promise<number> {
-    const events = await api.listUserEvents(username);
+    const batches: GitHubEvent[][] = [];
+
+    try {
+      batches.push(await api.listAuthenticatedUserEvents(10));
+    } catch (err) {
+      console.error(`Authenticated events fetch failed for ${username}:`, err);
+    }
+
+    try {
+      batches.push(await api.listUserEvents(username, 10));
+    } catch (err) {
+      console.error(`User events fetch failed for ${username}:`, err);
+    }
+
+    try {
+      batches.push(await api.listUserPublicEvents(username, 10));
+    } catch (err) {
+      console.error(`Public events fetch failed for ${username}:`, err);
+    }
+
+    const seen = new Set<string>();
     let total = 0;
 
-    for (const event of events) {
-      if (event.type !== 'PushEvent') continue;
-      total +=
-        event.payload.commits?.length ??
-        event.payload.distinct_size ??
-        event.payload.size ??
-        0;
+    for (const events of batches) {
+      for (const event of events) {
+        if (event.type !== 'PushEvent' || seen.has(event.id)) continue;
+        seen.add(event.id);
+        total +=
+          event.payload.commits?.length ??
+          event.payload.distinct_size ??
+          event.payload.size ??
+          0;
+      }
     }
 
     return total;

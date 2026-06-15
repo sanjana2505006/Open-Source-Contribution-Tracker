@@ -204,6 +204,23 @@ export class GitHubApi {
     return this.listUserEvents(username);
   }
 
+  /** Events for the authenticated token owner (includes private repo pushes). */
+  async listAuthenticatedUserEvents(maxPages = 10): Promise<GitHubEvent[]> {
+    return this.requestAllPages<GitHubEvent>(
+      (page) => `/user/events?per_page=100&page=${page}`,
+      maxPages,
+    );
+  }
+
+  /** Public-only activity feed — works without special OAuth scopes. */
+  async listUserPublicEvents(username: string, maxPages = 10): Promise<GitHubEvent[]> {
+    return this.requestAllPages<GitHubEvent>(
+      (page) =>
+        `/users/${encodeURIComponent(username)}/events/public?per_page=100&page=${page}`,
+      maxPages,
+    );
+  }
+
   /** Authenticated feed — includes private repo activity and paginates beyond the first 100 events. */
   async listUserEvents(username: string, maxPages = 10): Promise<GitHubEvent[]> {
     return this.requestAllPages<GitHubEvent>(

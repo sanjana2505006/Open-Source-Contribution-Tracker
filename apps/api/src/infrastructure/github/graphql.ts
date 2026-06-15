@@ -486,6 +486,40 @@ export class GitHubGraphQL {
     return items;
   }
 
+  async getDefaultTotalCommitContributions(
+    login: string | null,
+    asViewer: boolean,
+  ): Promise<number> {
+    const root = asViewer ? 'viewer' : 'user(login: $login)';
+    const query = `
+      query($login: String) {
+        ${root} {
+          contributionsCollection {
+            totalCommitContributions
+          }
+        }
+      }
+    `;
+
+    type TotalPage = {
+      viewer?: { contributionsCollection: { totalCommitContributions: number } } | null;
+      user?: { contributionsCollection: { totalCommitContributions: number } } | null;
+    };
+
+    const data = await this.query<TotalPage>(query, {
+      login: asViewer ? undefined : login,
+    });
+
+    const subject = asViewer ? data.viewer : data.user;
+    if (!subject) {
+      throw new Error(
+        asViewer ? 'GitHub viewer not available' : `GitHub user "${login}" not found`,
+      );
+    }
+
+    return subject.contributionsCollection.totalCommitContributions;
+  }
+
   async getTotalCommitContributions(
     login: string,
     sinceYears = 1,
