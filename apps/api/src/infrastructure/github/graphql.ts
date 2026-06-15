@@ -391,16 +391,19 @@ export class GitHubGraphQL {
     asViewer: boolean,
   ): Promise<GraphQLCommitContribution[]> {
     const items: GraphQLCommitContribution[] = [];
-    let repoCursor: string | null = null;
-
+    let cursor: string | null = null;
     const root = asViewer ? 'viewer' : 'user(login: $login)';
+
     const query = `
-      query($login: String, $from: DateTime!, $to: DateTime!, $repoCursor: String) {
+      query($login: String, $from: DateTime!, $to: DateTime!, $cursor: String) {
         ${root} {
           contributionsCollection(from: $from, to: $to) {
-            commitContributionsByRepository(maxRepositories: 100, after: $repoCursor) {
+            commitContributions(first: 100, after: $cursor) {
               pageInfo { hasNextPage endCursor }
               nodes {
+                commitCount
+                occurredAt
+                resourcePath
                 repository {
                   databaseId
                   nameWithOwner
@@ -413,14 +416,6 @@ export class GitHubGraphQL {
                   defaultBranchRef { name }
                   pushedAt
                 }
-                contributions(first: 100) {
-                  pageInfo { hasNextPage endCursor }
-                  nodes {
-                    commitCount
-                    occurredAt
-                    resourcePath
-                  }
-                }
               }
             }
           }
@@ -429,50 +424,40 @@ export class GitHubGraphQL {
     `;
 
     for (;;) {
-      type RepoPage = {
+      type CommitPage = {
         viewer?: {
           contributionsCollection: {
-            commitContributionsByRepository: {
+            commitContributions: {
               pageInfo: PageInfo;
               nodes: Array<{
-                repository: GraphQLRepoNode;
-                contributions: {
-                  pageInfo: PageInfo;
-                  nodes: Array<{
-                    commitCount: number;
-                    occurredAt: string;
-                    resourcePath: string;
-                  }>;
-                };
+                commitCount: number;
+                occurredAt: string;
+                resourcePath: string;
+                repository: GraphQLRepoNode | null;
               }>;
             };
           };
         } | null;
         user?: {
           contributionsCollection: {
-            commitContributionsByRepository: {
+            commitContributions: {
               pageInfo: PageInfo;
               nodes: Array<{
-                repository: GraphQLRepoNode;
-                contributions: {
-                  pageInfo: PageInfo;
-                  nodes: Array<{
-                    commitCount: number;
-                    occurredAt: string;
-                    resourcePath: string;
-                  }>;
-                };
+                commitCount: number;
+                occurredAt: string;
+                resourcePath: string;
+                repository: GraphQLRepoNode | null;
               }>;
             };
           };
         } | null;
       };
 
-      const data: RepoPage = await this.query<RepoPage>(query, {
+      const data: CommitPage = await this.query<CommitPage>(query, {
         login: asViewer ? undefined : login,
         from,
         to,
-        repoCursor,
+        cursor,
       });
 
       const subject = asViewer ? data.viewer : data.user;
@@ -482,25 +467,64 @@ export class GitHubGraphQL {
         );
       }
 
-      const repoPage = subject.contributionsCollection.commitContributionsByRepository;
+      const page = subject.contributionsCollection.commitContributions;
 
-      for (const block of repoPage.nodes) {
-        for (const node of block.contributions.nodes) {
-          if (node.commitCount < 1) continue;
-          items.push({
-            commitCount: node.commitCount,
-            occurredAt: node.occurredAt,
-            resourcePath: node.resourcePath,
-            repository: block.repository,
-          });
-        }
+      for (const node of page.nodes) {
+        if (node.commitCount < 1 || !node.repository) continue;
+        items.push({
+          commitCount: node.commitCount,
+          occurredAt: node.occurredAt,
+          resourcePath: node.resourcePath,
+          repository: node.repository,
+        });
       }
 
-      if (!repoPage.pageInfo.hasNextPage) break;
-      repoCursor = repoPage.pageInfo.endCursor;
+      if (!page.pageInfo.hasNextPage) break;
+      cursor = page.pageInfo.endCursor;
     }
 
     return items;
+  }
+
+  async getTotalCommitContributions(
+    login: string,
+    sinceYears = 1,
+    asViewer = false,
+  ): Promise<number> {
+    const rangeEnd = new Date();
+    const rangeStart = new Date();
+    rangeStart.setUTCFullYear(rangeStart.getUTCFullYear() - sinceYears);
+
+    const root = asViewer ? 'viewer' : 'user(login: $login)';
+    const query = `
+      query($login: String, $from: DateTime!, $to: DateTime!) {
+        ${root} {
+          contributionsCollection(from: $from, to: $to) {
+            totalCommitContributions
+          }
+        }
+      }
+    `;
+
+    type TotalPage = {
+      viewer?: { contributionsCollection: { totalCommitContributions: number } } | null;
+      user?: { contributionsCollection: { totalCommitContributions: number } } | null;
+    };
+
+    const data = await this.query<TotalPage>(query, {
+      login: asViewer ? undefined : login,
+      from: rangeStart.toISOString(),
+      to: rangeEnd.toISOString(),
+    });
+
+    const subject = asViewer ? data.viewer : data.user;
+    if (!subject) {
+      throw new Error(
+        asViewer ? 'GitHub viewer not available' : `GitHub user "${login}" not found`,
+      );
+    }
+
+    return subject.contributionsCollection.totalCommitContributions;
   }
 
   async listContributedRepositories(login: string): Promise<GraphQLRepoNode[]> {

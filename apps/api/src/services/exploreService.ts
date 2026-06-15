@@ -63,9 +63,12 @@ export class ExploreService {
 
     let commitCount = 0;
     for (const event of events) {
-      if (event.type === 'PushEvent' && event.payload.commits?.length) {
-        commitCount += event.payload.commits.length;
-      }
+      if (event.type !== 'PushEvent') continue;
+      commitCount +=
+        event.payload.commits?.length ??
+        event.payload.distinct_size ??
+        event.payload.size ??
+        0;
     }
 
     const repoNames = new Set<string>();

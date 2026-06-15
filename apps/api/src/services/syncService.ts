@@ -210,6 +210,13 @@ export class SyncService {
       const itemsSynced = prResult.count + repoResult.count;
       await this.jobs.updateProgress(jobId, itemsSynced, reposFailed);
 
+      let commitRows = 0;
+      try {
+        commitRows = await this.syncRecentCommits(userId, user.username, api, gql, jobId);
+      } catch (commitErr) {
+        console.error(`Commit sync failed for ${user.username}:`, commitErr);
+      }
+
       await this.userRepos.rebuildFromContributions(userId);
       await this.journey.refreshMilestones(userId);
 
@@ -223,10 +230,10 @@ export class SyncService {
             : 'No PRs or repos found — check your GitHub account has public activity.';
         status = 'failed';
       } else if (reposFailed > 0) {
-        completionMessage = `Synced ${prResult.count} PRs and ${repoResult.count} repos (some items skipped). Issues syncing in background.`;
+        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commit groups (some items skipped). Issues syncing in background.`;
         status = 'partial';
       } else {
-        completionMessage = `Synced ${prResult.count} PRs and ${repoResult.count} repos. Issues syncing in background.`;
+        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commit groups. Issues syncing in background.`;
         status = 'completed';
       }
 
@@ -234,7 +241,7 @@ export class SyncService {
 
       void new ExploreService(this.env, this.db).publishFromUser(userId);
 
-      // Issues + commits are slow (Search API) — finish the job first, then backfill.
+      // Issues are slow (Search API) — finish PRs/repos/commits first, then backfill issues.
       void this.runBackgroundSync(userId, user.username, api, gql).catch((err) => {
         console.error('Background sync failed:', err);
       });
@@ -326,23 +333,15 @@ export class SyncService {
     api: GitHubApi,
     gql: GitHubGraphQL,
   ): Promise<void> {
-    const [issueCount, commitCount] = await Promise.all([
-      this.syncAllIssues(userId, username, api, gql).catch((err) => {
-        console.error(`Issue background sync failed for ${username}:`, err);
-        return 0;
-      }),
-      this.syncRecentCommits(userId, username, api, gql).catch((err) => {
-        console.error(`Commit background sync failed for ${username}:`, err);
-        return 0;
-      }),
-    ]);
+    const issueCount = await this.syncAllIssues(userId, username, api, gql).catch((err) => {
+      console.error(`Issue background sync failed for ${username}:`, err);
+      return 0;
+    });
 
     await this.userRepos.rebuildFromContributions(userId);
     await this.journey.refreshMilestones(userId);
     void new ExploreService(this.env, this.db).publishFromUser(userId);
-    console.log(
-      `Background sync for ${username}: ${issueCount} issues, ${commitCount} commit rows`,
-    );
+    console.log(`Background sync for ${username}: ${issueCount} issues`);
   }
 
   private async syncAllIssues(
@@ -430,18 +429,25 @@ export class SyncService {
     jobId?: string,
   ): Promise<number> {
     let count = 0;
+    let graphTotal = 0;
 
     try {
       const graphCommits = await gql.listCommitContributions(username, 1, true);
+      graphTotal = await gql.getTotalCommitContributions(username, 1, true);
       count += await this.persistGraphqlCommits(userId, graphCommits, jobId);
-      console.log(`GraphQL commit sync for ${username}: ${count} rows`);
+      console.log(
+        `GraphQL commit sync for ${username}: ${count} rows (GitHub total: ${graphTotal})`,
+      );
     } catch (viewerErr) {
       console.error(`Viewer commit sync failed for ${username}:`, viewerErr);
       try {
         const graphCommits = await gql.listCommitContributions(username, 1, false);
+        graphTotal = await gql.getTotalCommitContributions(username, 1, false);
         const publicCount = await this.persistGraphqlCommits(userId, graphCommits, jobId);
         count += publicCount;
-        console.log(`Public commit sync for ${username}: ${publicCount} rows`);
+        console.log(
+          `Public commit sync for ${username}: ${publicCount} rows (GitHub total: ${graphTotal})`,
+        );
       } catch (publicErr) {
         console.error(`Public commit sync failed for ${username}:`, publicErr);
       }
@@ -451,6 +457,12 @@ export class SyncService {
       const eventCount = await this.syncCommitsFromEvents(userId, username, api, jobId);
       count += eventCount;
       console.log(`Push-event commit fallback for ${username}: ${eventCount} rows`);
+    }
+
+    if (count === 0 && graphTotal > 0) {
+      await this.persistCommitSummary(userId, graphTotal);
+      count = 1;
+      console.log(`Commit summary fallback for ${username}: ${graphTotal} commits`);
     }
 
     return count;
@@ -483,7 +495,9 @@ export class SyncService {
           state: null,
           isMerged: null,
           occurredAt: new Date(contribution.occurredAt),
-          htmlUrl: `https://github.com${contribution.resourcePath}`,
+          htmlUrl: contribution.resourcePath.startsWith('http')
+            ? contribution.resourcePath
+            : `https://github.com${contribution.resourcePath}`,
           commitCount: contribution.commitCount,
         });
         count++;
@@ -509,8 +523,13 @@ export class SyncService {
 
     for (const event of events) {
       if (event.type !== 'PushEvent') continue;
-      const commits = event.payload.commits;
-      if (!commits?.length) continue;
+
+      const commitCount =
+        event.payload.commits?.length ??
+        event.payload.distinct_size ??
+        event.payload.size ??
+        0;
+      if (commitCount < 1) continue;
 
       try {
         const fullName = event.repo.name;
@@ -520,10 +539,11 @@ export class SyncService {
         }
         await this.userRepos.linkRepoOnly(userId, repo.id);
 
+        const commits = event.payload.commits;
         const headline =
-          commits.length === 1
+          commits?.length === 1
             ? commits[0]!.message.split('\n')[0]!.slice(0, 120)
-            : `${commits.length} commits`;
+            : `${commitCount} commits`;
 
         await this.contributions.upsert({
           userId,
@@ -535,7 +555,7 @@ export class SyncService {
           isMerged: null,
           occurredAt: new Date(event.created_at),
           htmlUrl: `https://github.com/${fullName}`,
-          commitCount: commits.length,
+          commitCount,
         });
         count++;
         if (jobId && count % 25 === 0) {
@@ -547,6 +567,25 @@ export class SyncService {
     }
 
     return count;
+  }
+
+  /** Last-resort: store GitHub's totalCommitContributions when row-level sync returns nothing. */
+  private async persistCommitSummary(userId: string, totalCommits: number): Promise<void> {
+    const repos = await this.userRepos.listForUser(userId, 1);
+    if (!repos.length) return;
+
+    await this.contributions.upsert({
+      userId,
+      repositoryId: repos[0]!.id,
+      githubId: 1,
+      type: 'commit',
+      title: 'Commits (last 12 months)',
+      state: null,
+      isMerged: null,
+      occurredAt: new Date(),
+      htmlUrl: repos[0]!.htmlUrl,
+      commitCount: totalCommits,
+    });
   }
 
   private async syncGraphqlIssues(

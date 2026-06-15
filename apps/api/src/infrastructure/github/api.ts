@@ -43,6 +43,9 @@ export type GitHubEvent = {
   repo: { name: string; url: string };
   payload: {
     commits?: { sha: string; message: string }[];
+    /** Present on push events — use when commits[] was removed from the API. */
+    size?: number;
+    distinct_size?: number;
   };
 };
 
