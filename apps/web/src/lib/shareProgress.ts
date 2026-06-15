@@ -18,10 +18,6 @@ export function buildLinkedInPost(input: ProgressShareInput): string {
     `• ${input.stats.repositories} active repositor${input.stats.repositories === 1 ? 'y' : 'ies'}`,
   ];
 
-  if (input.stats.commits > 0) {
-    lines.push(`• ${input.stats.commits} recent commits`);
-  }
-
   if (input.streak && input.streak.currentStreak > 0) {
     lines.push(`• ${input.streak.currentStreak}-day contribution streak 🔥`);
     if (input.streak.longestStreak > input.streak.currentStreak) {

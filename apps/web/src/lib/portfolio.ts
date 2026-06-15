@@ -46,7 +46,7 @@ export function buildPortfolioSummary(profile: ContributorProfile): string {
 
   return [
     `${name} — Open Source Portfolio`,
-    `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories · ${profile.stats.commits} recent commits`,
+    `${profile.stats.pullRequests} pull requests · ${profile.stats.repositories} repositories`,
     `View on OSCT: ${url}`,
   ].join('\n');
 }

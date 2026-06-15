@@ -24,11 +24,6 @@ function StatIcons() {
         <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-7a1 1 0 00-1 1v1H4.5a.75.75 0 010-1.5H6V3.25a.5.5 0 01.5-.5h7v9h-7a2.5 2.5 0 01-2.5-2.5V2.5z" />
       </svg>
     ),
-    commit: (
-      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M11.93 8.5a4.002 4.002 0 01-7.86 0H.75a.75.75 0 010-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 010 1.5h-3.32zM8 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
-      </svg>
-    ),
     issue: (
       <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
@@ -90,7 +85,7 @@ export function OverviewPage() {
         : null;
 
   const hasData =
-    stats && (stats.repositories > 0 || stats.pullRequests > 0 || stats.commits > 0);
+    stats && (stats.repositories > 0 || stats.pullRequests > 0);
 
   return (
     <>
@@ -156,10 +151,9 @@ export function OverviewPage() {
       <main className="page-main">
         <PortfolioSharePrompt username={user.username} />
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {loading || authLoading ? (
             <>
-              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -200,12 +194,6 @@ export function OverviewPage() {
                 accent="var(--color-repo)"
                 icon={icons.repo}
                 delay="animate-fade-up-delay-3"
-              />
-              <StatCard
-                label="Commits"
-                value={stats?.commits ?? '—'}
-                accent="var(--color-commit)"
-                icon={icons.commit}
               />
             </>
           )}

@@ -59,7 +59,7 @@ export function AnalyticsPanel({ streak }: { streak?: ContributionStreak | null 
 
         {!loading && data && (
           <>
-            <Panel title="Activity" subtitle="Monthly PRs and commits" className="lg:col-span-2">
+            <Panel title="Activity" subtitle="Monthly pull requests" className="lg:col-span-2">
               <ActivityChart data={data.timeline} />
             </Panel>
 

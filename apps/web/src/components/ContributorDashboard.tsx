@@ -12,14 +12,13 @@ type Props = {
   statIcons: {
     pr: ReactNode;
     repo: ReactNode;
-    commit: ReactNode;
   };
 };
 
 export function ContributorDashboard({ profile, statIcons }: Props) {
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2">
         <StatCard
           label="Pull requests"
           value={profile.stats.pullRequests}
@@ -32,16 +31,10 @@ export function ContributorDashboard({ profile, statIcons }: Props) {
           accent="var(--color-repo)"
           icon={statIcons.repo}
         />
-        <StatCard
-          label="Commits (recent)"
-          value={profile.stats.commits}
-          accent="var(--color-commit)"
-          icon={statIcons.commit}
-        />
       </section>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-2">
-        <Panel title="Activity" subtitle="Public PRs and commits by month" className="lg:col-span-2">
+        <Panel title="Activity" subtitle="Public PRs by month" className="lg:col-span-2">
           <ActivityChart data={profile.analytics.timeline} />
         </Panel>
         <Panel title="Pull requests" subtitle="Public PR breakdown">

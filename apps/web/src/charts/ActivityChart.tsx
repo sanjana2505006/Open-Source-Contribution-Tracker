@@ -49,7 +49,7 @@ export function ActivityChart({ data }: Props) {
       .range([0, innerW])
       .padding(0.28);
 
-    const maxVal = d3.max(data, (d) => Math.max(d.pullRequests, d.commits, d.total)) ?? 1;
+    const maxVal = d3.max(data, (d) => d.pullRequests) ?? 1;
     const y = d3.scaleLinear().domain([0, maxVal]).nice().range([innerH, 0]);
 
     g.append('g')
@@ -84,7 +84,7 @@ export function ActivityChart({ data }: Props) {
       .call((sel) => sel.selectAll('text').attr('fill', colors.text).attr('font-size', 11))
       .call((sel) => sel.selectAll('line, path').attr('stroke', colors.grid));
 
-    const barW = x.bandwidth() / 2 - 2;
+    const barW = x.bandwidth();
     const tip = ensureChartTooltip(wrap);
 
     const highlight = g
@@ -108,18 +108,6 @@ export function ActivityChart({ data }: Props) {
       .attr('height', 0)
       .attr('fill', `url(#${gradId}-pr)`);
 
-    const commitBars = g
-      .selectAll<SVGRectElement, ContributionTimelinePoint>('.bar-commit')
-      .data(data)
-      .join('rect')
-      .attr('class', 'bar-commit chart-bar')
-      .attr('x', (d) => x(d.period)! + x.bandwidth() / 2 + 1)
-      .attr('width', barW)
-      .attr('rx', 3)
-      .attr('y', innerH)
-      .attr('height', 0)
-      .attr('fill', `url(#${gradId}-commit)`);
-
     prBars
       .transition()
       .duration(chartDuration)
@@ -128,18 +116,9 @@ export function ActivityChart({ data }: Props) {
       .attr('y', (d) => y(d.pullRequests))
       .attr('height', (d) => innerH - y(d.pullRequests));
 
-    commitBars
-      .transition()
-      .duration(chartDuration)
-      .delay((_, i) => i * 28 + 60)
-      .ease(chartEase)
-      .attr('y', (d) => y(d.commits))
-      .attr('height', (d) => innerH - y(d.commits));
-
     const setFocus = (period: string | null, event?: MouseEvent) => {
       const dim = period ? 0.38 : 1;
       prBars.attr('opacity', (d) => (period && d.period !== period ? dim : 1));
-      commitBars.attr('opacity', (d) => (period && d.period !== period ? dim : 1));
 
       if (!period) {
         highlight.attr('opacity', 0);
@@ -160,8 +139,7 @@ export function ActivityChart({ data }: Props) {
           tip,
           wrap,
           `<strong>${formatMonth(period)}</strong>
-           <span><i style="background:${colors.pr}"></i>${point.pullRequests} PRs</span>
-           <span><i style="background:${colors.commit}"></i>${point.commits} commits</span>`,
+           <span><i style="background:${colors.pr}"></i>${point.pullRequests} PRs</span>`,
           event.clientX,
           event.clientY,
         );
@@ -185,8 +163,7 @@ export function ActivityChart({ data }: Props) {
           tip,
           wrap,
           `<strong>${formatMonth(d.period)}</strong>
-           <span><i style="background:${colors.pr}"></i>${d.pullRequests} PRs</span>
-           <span><i style="background:${colors.commit}"></i>${d.commits} commits</span>`,
+           <span><i style="background:${colors.pr}"></i>${d.pullRequests} PRs</span>`,
           event.clientX,
           event.clientY,
         );
@@ -206,15 +183,11 @@ export function ActivityChart({ data }: Props) {
 
   return (
     <div ref={wrapRef} className="chart-shell w-full">
-      <svg ref={svgRef} className="chart-svg" role="img" aria-label="Monthly contribution activity" />
+      <svg ref={svgRef} className="chart-svg" role="img" aria-label="Monthly pull request activity" />
       <div className="mt-3 flex gap-5 text-[11px] font-medium text-[var(--color-muted)]">
         <span className="flex items-center gap-1.5">
           <span className="chart-legend-swatch chart-legend-swatch--pr" />
-          PRs
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="chart-legend-swatch chart-legend-swatch--commit" />
-          commits
+          Pull requests
         </span>
         <span className="ml-auto hidden text-[10px] sm:inline">Hover a month for details</span>
       </div>
