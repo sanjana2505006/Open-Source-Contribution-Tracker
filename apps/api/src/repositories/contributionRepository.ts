@@ -32,8 +32,8 @@ export class ContributionRepository {
       if (input.createdAt) meta.createdAt = input.createdAt.toISOString();
       if (input.updatedAt) meta.updatedAt = input.updatedAt.toISOString();
       if (Object.keys(meta).length > 0) metadata = JSON.stringify(meta);
-    } else if (input.type === 'commit' && input.commitCount && input.commitCount > 1) {
-      metadata = JSON.stringify({ commitCount: input.commitCount });
+    } else if (input.type === 'commit') {
+      metadata = JSON.stringify({ commitCount: input.commitCount ?? 1 });
     }
 
     await this.db.query(
@@ -49,6 +49,14 @@ export class ContributionRepository {
          raw_metadata = CASE
            WHEN EXCLUDED.raw_metadata IS NULL THEN contributions.raw_metadata
            WHEN contributions.raw_metadata IS NULL THEN EXCLUDED.raw_metadata
+           WHEN EXCLUDED.type = 'commit' OR contributions.type = 'commit' THEN
+             jsonb_build_object(
+               'commitCount',
+               GREATEST(
+                 COALESCE((contributions.raw_metadata->>'commitCount')::int, 0),
+                 COALESCE((EXCLUDED.raw_metadata->>'commitCount')::int, 0)
+               )
+             )
            ELSE jsonb_build_object(
              'roles',
              (

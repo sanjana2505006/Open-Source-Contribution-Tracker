@@ -47,9 +47,30 @@ export type GraphQLCommitContribution = {
   repository: GraphQLRepoNode;
 };
 
+/** Stable ID for commit rows — must fit PostgreSQL BIGINT and JS safe integers. */
 function contributionGithubId(repositoryId: number, occurredAt: string): number {
-  const hex = `${repositoryId}-${occurredAt}`.replace(/[^a-f0-9]/gi, '').slice(0, 15);
-  return Number.parseInt(hex.padEnd(15, '0'), 16);
+  let h = 2166136261 >>> 0;
+  const key = `${repositoryId}:${occurredAt}`;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const mix = (h ^ Math.imul(repositoryId | 0, 2654435761)) >>> 0;
+  return mix + 1;
+}
+
+/** Stable ID for push-event rows (REST /users/:login/events). */
+function pushEventGithubId(eventId: string): number {
+  if (/^\d+$/.test(eventId)) {
+    const n = Number(eventId);
+    if (Number.isSafeInteger(n) && n > 0) return n;
+  }
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < eventId.length; i++) {
+    h ^= eventId.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h + 1;
 }
 
 function mapContributionLevel(count: number, level: number): 0 | 1 | 2 | 3 | 4 {
@@ -67,7 +88,7 @@ export function issueState(issue: GraphQLIssue): 'open' | 'closed' {
   return issue.state === 'OPEN' ? 'open' : 'closed';
 }
 
-export { contributionGithubId };
+export { contributionGithubId, pushEventGithubId };
 
 export function graphRepoToGitHubRepo(node: GraphQLRepoNode): GitHubRepo {
   const slash = node.nameWithOwner.indexOf('/');
@@ -333,6 +354,7 @@ export class GitHubGraphQL {
   async listCommitContributions(
     login: string,
     sinceYears = 1,
+    asViewer = false,
   ): Promise<GraphQLCommitContribution[]> {
     const items: GraphQLCommitContribution[] = [];
     const rangeEnd = new Date();
@@ -351,6 +373,7 @@ export class GitHubGraphQL {
           login,
           cursor.toISOString(),
           to.toISOString(),
+          asViewer,
         )),
       );
 
@@ -365,13 +388,15 @@ export class GitHubGraphQL {
     login: string,
     from: string,
     to: string,
+    asViewer: boolean,
   ): Promise<GraphQLCommitContribution[]> {
     const items: GraphQLCommitContribution[] = [];
     let repoCursor: string | null = null;
 
+    const root = asViewer ? 'viewer' : 'user(login: $login)';
     const query = `
-      query($login: String!, $from: DateTime!, $to: DateTime!, $repoCursor: String) {
-        user(login: $login) {
+      query($login: String, $from: DateTime!, $to: DateTime!, $repoCursor: String) {
+        ${root} {
           contributionsCollection(from: $from, to: $to) {
             commitContributionsByRepository(maxRepositories: 100, after: $repoCursor) {
               pageInfo { hasNextPage endCursor }
@@ -389,6 +414,7 @@ export class GitHubGraphQL {
                   pushedAt
                 }
                 contributions(first: 100) {
+                  pageInfo { hasNextPage endCursor }
                   nodes {
                     commitCount
                     occurredAt
@@ -404,13 +430,32 @@ export class GitHubGraphQL {
 
     for (;;) {
       type RepoPage = {
-        user: {
+        viewer?: {
           contributionsCollection: {
             commitContributionsByRepository: {
               pageInfo: PageInfo;
               nodes: Array<{
                 repository: GraphQLRepoNode;
                 contributions: {
+                  pageInfo: PageInfo;
+                  nodes: Array<{
+                    commitCount: number;
+                    occurredAt: string;
+                    resourcePath: string;
+                  }>;
+                };
+              }>;
+            };
+          };
+        } | null;
+        user?: {
+          contributionsCollection: {
+            commitContributionsByRepository: {
+              pageInfo: PageInfo;
+              nodes: Array<{
+                repository: GraphQLRepoNode;
+                contributions: {
+                  pageInfo: PageInfo;
                   nodes: Array<{
                     commitCount: number;
                     occurredAt: string;
@@ -424,17 +469,20 @@ export class GitHubGraphQL {
       };
 
       const data: RepoPage = await this.query<RepoPage>(query, {
-        login,
+        login: asViewer ? undefined : login,
         from,
         to,
         repoCursor,
       });
 
-      if (!data.user) {
-        throw new Error(`GitHub user "${login}" not found`);
+      const subject = asViewer ? data.viewer : data.user;
+      if (!subject) {
+        throw new Error(
+          asViewer ? 'GitHub viewer not available' : `GitHub user "${login}" not found`,
+        );
       }
 
-      const repoPage = data.user.contributionsCollection.commitContributionsByRepository;
+      const repoPage = subject.contributionsCollection.commitContributionsByRepository;
 
       for (const block of repoPage.nodes) {
         for (const node of block.contributions.nodes) {
