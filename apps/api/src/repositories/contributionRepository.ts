@@ -33,7 +33,8 @@ export class ContributionRepository {
       if (input.updatedAt) meta.updatedAt = input.updatedAt.toISOString();
       if (Object.keys(meta).length > 0) metadata = JSON.stringify(meta);
     } else if (input.type === 'commit') {
-      metadata = JSON.stringify({ commitCount: input.commitCount ?? 1 });
+      await this.upsertCommit(input);
+      return;
     }
 
     await this.db.query(
@@ -49,14 +50,6 @@ export class ContributionRepository {
          raw_metadata = CASE
            WHEN EXCLUDED.raw_metadata IS NULL THEN contributions.raw_metadata
            WHEN contributions.raw_metadata IS NULL THEN EXCLUDED.raw_metadata
-           WHEN EXCLUDED.type = 'commit' OR contributions.type = 'commit' THEN
-             jsonb_build_object(
-               'commitCount',
-               GREATEST(
-                 COALESCE((contributions.raw_metadata->>'commitCount')::int, 0),
-                 COALESCE((EXCLUDED.raw_metadata->>'commitCount')::int, 0)
-               )
-             )
            ELSE jsonb_build_object(
              'roles',
              (
@@ -90,6 +83,46 @@ export class ContributionRepository {
         input.htmlUrl,
         metadata,
       ],
+    );
+  }
+
+  private async upsertCommit(input: UpsertContributionInput): Promise<void> {
+    const commitCount = input.commitCount ?? 1;
+    const metadata = JSON.stringify({ commitCount });
+
+    await this.db.query(
+      `INSERT INTO contributions (
+         user_id, repository_id, github_id, type, title, state, is_merged, occurred_at, html_url, raw_metadata
+       ) VALUES ($1, $2, $3, 'commit', $4, $5, $6, $7, $8, $9::jsonb)
+       ON CONFLICT (user_id, type, github_id) DO UPDATE SET
+         title = EXCLUDED.title,
+         occurred_at = EXCLUDED.occurred_at,
+         html_url = EXCLUDED.html_url,
+         raw_metadata = jsonb_build_object(
+           'commitCount',
+           GREATEST(
+             COALESCE((contributions.raw_metadata->>'commitCount')::int, 0),
+             COALESCE((EXCLUDED.raw_metadata->>'commitCount')::int, 0)
+           )
+         )`,
+      [
+        input.userId,
+        input.repositoryId,
+        input.githubId,
+        input.title,
+        input.state,
+        input.isMerged,
+        input.occurredAt,
+        input.htmlUrl,
+        metadata,
+      ],
+    );
+  }
+
+  async deleteByUserAndType(userId: string, type: 'commit' | 'pull_request' | 'issue'): Promise<void> {
+    await this.db.query(
+      `DELETE FROM contributions WHERE user_id = $1 AND type = $2`,
+      [userId, type],
     );
   }
 

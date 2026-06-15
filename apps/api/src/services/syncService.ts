@@ -3,11 +3,8 @@ import type { Env } from '../config/env.js';
 import { GitHubApi, RateLimitError, type GitHubRepo, type GitHubSearchIssue } from '../infrastructure/github/api.js';
 import {
   GitHubGraphQL,
-  contributionGithubId,
   graphRepoToGitHubRepo,
   issueState,
-  pushEventGithubId,
-  type GraphQLCommitContribution,
   type GraphQLIssue,
   type GraphQLPullRequest,
 } from '../infrastructure/github/graphql.js';
@@ -230,10 +227,10 @@ export class SyncService {
             : 'No PRs or repos found — check your GitHub account has public activity.';
         status = 'failed';
       } else if (reposFailed > 0) {
-        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commit groups (some items skipped). Issues syncing in background.`;
+        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commits (some items skipped). Issues syncing in background.`;
         status = 'partial';
       } else {
-        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commit groups. Issues syncing in background.`;
+        completionMessage = `Synced ${prResult.count} PRs, ${repoResult.count} repos, ${commitRows} commits. Issues syncing in background.`;
         status = 'completed';
       }
 
@@ -426,147 +423,65 @@ export class SyncService {
     username: string,
     api: GitHubApi,
     gql: GitHubGraphQL,
-    jobId?: string,
+    _jobId?: string,
   ): Promise<number> {
-    let count = 0;
-    let graphTotal = 0;
+    const total = await this.fetchCommitTotal(username, gql, api);
 
-    try {
-      const graphCommits = await gql.listCommitContributions(username, 1, true);
-      graphTotal = await gql.getTotalCommitContributions(username, 1, true);
-      count += await this.persistGraphqlCommits(userId, graphCommits, jobId);
-      console.log(
-        `GraphQL commit sync for ${username}: ${count} rows (GitHub total: ${graphTotal})`,
-      );
-    } catch (viewerErr) {
-      console.error(`Viewer commit sync failed for ${username}:`, viewerErr);
-      try {
-        const graphCommits = await gql.listCommitContributions(username, 1, false);
-        graphTotal = await gql.getTotalCommitContributions(username, 1, false);
-        const publicCount = await this.persistGraphqlCommits(userId, graphCommits, jobId);
-        count += publicCount;
-        console.log(
-          `Public commit sync for ${username}: ${publicCount} rows (GitHub total: ${graphTotal})`,
-        );
-      } catch (publicErr) {
-        console.error(`Public commit sync failed for ${username}:`, publicErr);
-      }
+    await this.contributions.deleteByUserAndType(userId, 'commit');
+
+    if (total > 0) {
+      await this.persistCommitSummary(userId, total);
+      console.log(`Commit sync for ${username}: stored total ${total}`);
+    } else {
+      console.log(`Commit sync for ${username}: GitHub reported 0 commits in the last 3 years`);
     }
 
-    if (count === 0) {
-      const eventCount = await this.syncCommitsFromEvents(userId, username, api, jobId);
-      count += eventCount;
-      console.log(`Push-event commit fallback for ${username}: ${eventCount} rows`);
-    }
-
-    if (count === 0 && graphTotal > 0) {
-      await this.persistCommitSummary(userId, graphTotal);
-      count = 1;
-      console.log(`Commit summary fallback for ${username}: ${graphTotal} commits`);
-    }
-
-    return count;
+    return total;
   }
 
-  private async persistGraphqlCommits(
-    userId: string,
-    commitContributions: GraphQLCommitContribution[],
-    jobId?: string,
+  private async fetchCommitTotal(
+    username: string,
+    gql: GitHubGraphQL,
+    api: GitHubApi,
   ): Promise<number> {
-    let count = 0;
-
-    for (const contribution of commitContributions) {
+    for (const asViewer of [true, false]) {
       try {
-        const repo = await this.repos.upsert(graphRepoToGitHubRepo(contribution.repository));
-        await this.userRepos.linkRepoOnly(userId, repo.id);
-
-        await this.contributions.upsert({
-          userId,
-          repositoryId: repo.id,
-          githubId: contributionGithubId(
-            contribution.repository.databaseId,
-            contribution.occurredAt,
-          ),
-          type: 'commit',
-          title:
-            contribution.commitCount === 1
-              ? 'Commit'
-              : `${contribution.commitCount} commits`,
-          state: null,
-          isMerged: null,
-          occurredAt: new Date(contribution.occurredAt),
-          htmlUrl: contribution.resourcePath.startsWith('http')
-            ? contribution.resourcePath
-            : `https://github.com${contribution.resourcePath}`,
-          commitCount: contribution.commitCount,
-        });
-        count++;
-        if (jobId && count % 25 === 0) {
-          await this.jobs.updateProgress(jobId, count, 0);
+        const total = await gql.getTotalCommitContributions(username, 3, asViewer);
+        if (total > 0) {
+          console.log(
+            `GitHub totalCommitContributions for ${username} (viewer=${asViewer}): ${total}`,
+          );
+          return total;
         }
       } catch (err) {
-        console.error('GraphQL commit row failed:', err);
+        console.error(
+          `totalCommitContributions failed for ${username} (viewer=${asViewer}):`,
+          err,
+        );
       }
     }
 
-    return count;
+    const pushTotal = await this.countCommitsFromPushEvents(username, api);
+    if (pushTotal > 0) {
+      console.log(`Push-event commit estimate for ${username}: ${pushTotal}`);
+    }
+    return pushTotal;
   }
 
-  private async syncCommitsFromEvents(
-    userId: string,
-    username: string,
-    api: GitHubApi,
-    jobId?: string,
-  ): Promise<number> {
+  private async countCommitsFromPushEvents(username: string, api: GitHubApi): Promise<number> {
     const events = await api.listUserEvents(username);
-    let count = 0;
+    let total = 0;
 
     for (const event of events) {
       if (event.type !== 'PushEvent') continue;
-
-      const commitCount =
+      total +=
         event.payload.commits?.length ??
         event.payload.distinct_size ??
         event.payload.size ??
         0;
-      if (commitCount < 1) continue;
-
-      try {
-        const fullName = event.repo.name;
-        let repo = await this.repos.findByFullName(fullName);
-        if (!repo) {
-          repo = await this.repos.upsert(stubRepo(fullName));
-        }
-        await this.userRepos.linkRepoOnly(userId, repo.id);
-
-        const commits = event.payload.commits;
-        const headline =
-          commits?.length === 1
-            ? commits[0]!.message.split('\n')[0]!.slice(0, 120)
-            : `${commitCount} commits`;
-
-        await this.contributions.upsert({
-          userId,
-          repositoryId: repo.id,
-          githubId: pushEventGithubId(event.id),
-          type: 'commit',
-          title: headline || 'Push',
-          state: null,
-          isMerged: null,
-          occurredAt: new Date(event.created_at),
-          htmlUrl: `https://github.com/${fullName}`,
-          commitCount,
-        });
-        count++;
-        if (jobId && count % 25 === 0) {
-          await this.jobs.updateProgress(jobId, count, 0);
-        }
-      } catch (err) {
-        console.error('Push-event commit row failed:', err);
-      }
     }
 
-    return count;
+    return total;
   }
 
   /** Last-resort: store GitHub's totalCommitContributions when row-level sync returns nothing. */

@@ -495,6 +495,34 @@ export class GitHubGraphQL {
     const rangeStart = new Date();
     rangeStart.setUTCFullYear(rangeStart.getUTCFullYear() - sinceYears);
 
+    let total = 0;
+    let cursor = new Date(rangeStart);
+
+    while (cursor < rangeEnd) {
+      const chunkEnd = new Date(cursor);
+      chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 364);
+      const to = chunkEnd < rangeEnd ? chunkEnd : rangeEnd;
+
+      total += await this.getTotalCommitContributionsInRange(
+        login,
+        cursor.toISOString(),
+        to.toISOString(),
+        asViewer,
+      );
+
+      cursor = new Date(to);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    return total;
+  }
+
+  private async getTotalCommitContributionsInRange(
+    login: string,
+    from: string,
+    to: string,
+    asViewer: boolean,
+  ): Promise<number> {
     const root = asViewer ? 'viewer' : 'user(login: $login)';
     const query = `
       query($login: String, $from: DateTime!, $to: DateTime!) {
@@ -513,8 +541,8 @@ export class GitHubGraphQL {
 
     const data = await this.query<TotalPage>(query, {
       login: asViewer ? undefined : login,
-      from: rangeStart.toISOString(),
-      to: rangeEnd.toISOString(),
+      from,
+      to,
     });
 
     const subject = asViewer ? data.viewer : data.user;
