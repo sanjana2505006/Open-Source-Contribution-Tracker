@@ -88,7 +88,32 @@ export class SyncService {
   }
 
   async getStats(userId: string): Promise<StatsSummary> {
-    return this.userRepos.getStats(userId);
+    const stats = await this.userRepos.getStats(userId);
+    if (stats.commits > 0) return stats;
+
+    try {
+      const total = await this.refreshCommitCount(userId);
+      if (total > 0) {
+        return { ...stats, commits: total };
+      }
+    } catch (err) {
+      console.error(`Commit stats refresh failed for user ${userId}:`, err);
+    }
+
+    return stats;
+  }
+
+  /** Fetch commit total from GitHub and persist when DB has none. */
+  private async refreshCommitCount(userId: string): Promise<number> {
+    const token = await this.oauth.getAccessToken(userId, this.env.SESSION_SECRET);
+    if (!token) return 0;
+
+    const user = await this.users.findById(userId);
+    if (!user) return 0;
+
+    const api = new GitHubApi(token);
+    const gql = new GitHubGraphQL(token);
+    return this.syncRecentCommits(userId, user.username, api, gql);
   }
 
   async startSync(userId: string): Promise<SyncStatus> {
@@ -426,17 +451,30 @@ export class SyncService {
     _jobId?: string,
   ): Promise<number> {
     const total = await this.fetchCommitTotal(username, gql, api);
-
-    await this.contributions.deleteByUserAndType(userId, 'commit');
-
-    if (total > 0) {
-      await this.persistCommitSummary(userId, total);
-      console.log(`Commit sync for ${username}: stored total ${total}`);
-    } else {
-      console.log(`Commit sync for ${username}: GitHub reported 0 commits in the last 3 years`);
+    if (total <= 0) {
+      console.log(`Commit sync for ${username}: no commits found from GitHub`);
+      return 0;
     }
 
-    return total;
+    const repos = await this.userRepos.listForUser(userId, 1);
+    if (!repos.length) {
+      console.error(`Commit sync for ${username}: no linked repos to attach summary row`);
+      return 0;
+    }
+
+    try {
+      await this.contributions.replaceCommitTotal(
+        userId,
+        repos[0]!.id,
+        repos[0]!.htmlUrl,
+        total,
+      );
+      console.log(`Commit sync for ${username}: stored total ${total}`);
+      return total;
+    } catch (err) {
+      console.error(`Commit sync for ${username}: failed to save total ${total}:`, err);
+      return 0;
+    }
   }
 
   private async fetchCommitTotal(
@@ -446,18 +484,35 @@ export class SyncService {
   ): Promise<number> {
     for (const asViewer of [true, false]) {
       try {
-        const total = await gql.getTotalCommitContributions(username, 3, asViewer);
+        let total = await gql.getTotalCommitContributions(username, 1, asViewer);
+        if (total <= 0) {
+          total = await gql.sumCommitContributions(username, 1, asViewer);
+        }
         if (total > 0) {
-          console.log(
-            `GitHub totalCommitContributions for ${username} (viewer=${asViewer}): ${total}`,
-          );
+          console.log(`GitHub commits for ${username} (viewer=${asViewer}): ${total}`);
           return total;
         }
       } catch (err) {
         console.error(
-          `totalCommitContributions failed for ${username} (viewer=${asViewer}):`,
+          `Commit total fetch failed for ${username} (viewer=${asViewer}):`,
           err,
         );
+      }
+    }
+
+    if (this.env.GITHUB_PUBLIC_TOKEN) {
+      try {
+        const publicGql = new GitHubGraphQL(this.env.GITHUB_PUBLIC_TOKEN);
+        let total = await publicGql.getTotalCommitContributions(username, 1, false);
+        if (total <= 0) {
+          total = await publicGql.sumCommitContributions(username, 1, false);
+        }
+        if (total > 0) {
+          console.log(`GitHub commits for ${username} (public token): ${total}`);
+          return total;
+        }
+      } catch (err) {
+        console.error(`Public-token commit fetch failed for ${username}:`, err);
       }
     }
 
@@ -482,25 +537,6 @@ export class SyncService {
     }
 
     return total;
-  }
-
-  /** Last-resort: store GitHub's totalCommitContributions when row-level sync returns nothing. */
-  private async persistCommitSummary(userId: string, totalCommits: number): Promise<void> {
-    const repos = await this.userRepos.listForUser(userId, 1);
-    if (!repos.length) return;
-
-    await this.contributions.upsert({
-      userId,
-      repositoryId: repos[0]!.id,
-      githubId: 1,
-      type: 'commit',
-      title: 'Commits (last 12 months)',
-      state: null,
-      isMerged: null,
-      occurredAt: new Date(),
-      htmlUrl: repos[0]!.htmlUrl,
-      commitCount: totalCommits,
-    });
   }
 
   private async syncGraphqlIssues(

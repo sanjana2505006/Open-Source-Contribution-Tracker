@@ -126,6 +126,35 @@ export class ContributionRepository {
     );
   }
 
+  /** Atomically replace stored commit total (avoids deleting rows if insert fails). */
+  async replaceCommitTotal(
+    userId: string,
+    repositoryId: string,
+    htmlUrl: string,
+    totalCommits: number,
+  ): Promise<void> {
+    const metadata = JSON.stringify({ commitCount: totalCommits });
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DELETE FROM contributions WHERE user_id = $1 AND type = 'commit'`, [
+        userId,
+      ]);
+      await client.query(
+        `INSERT INTO contributions (
+           user_id, repository_id, github_id, type, title, state, is_merged, occurred_at, html_url, raw_metadata
+         ) VALUES ($1, $2, 1, 'commit', $3, NULL, NULL, NOW(), $4, $5::jsonb)`,
+        [userId, repositoryId, 'Commits (last 12 months)', htmlUrl, metadata],
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
   async countByUser(userId: string, type?: string): Promise<number> {
     if (type) {
       const result = await this.db.query<{ count: string }>(

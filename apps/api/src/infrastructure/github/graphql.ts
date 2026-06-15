@@ -503,12 +503,16 @@ export class GitHubGraphQL {
       chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 364);
       const to = chunkEnd < rangeEnd ? chunkEnd : rangeEnd;
 
-      total += await this.getTotalCommitContributionsInRange(
-        login,
-        cursor.toISOString(),
-        to.toISOString(),
-        asViewer,
-      );
+      try {
+        total += await this.getTotalCommitContributionsInRange(
+          login,
+          cursor.toISOString(),
+          to.toISOString(),
+          asViewer,
+        );
+      } catch {
+        /* skip failed year chunk — other chunks may still contribute */
+      }
 
       cursor = new Date(to);
       cursor.setUTCDate(cursor.getUTCDate() + 1);
@@ -553,6 +557,110 @@ export class GitHubGraphQL {
     }
 
     return subject.contributionsCollection.totalCommitContributions;
+  }
+
+  async sumCommitContributions(
+    login: string,
+    sinceYears = 1,
+    asViewer = false,
+  ): Promise<number> {
+    const rangeEnd = new Date();
+    const rangeStart = new Date();
+    rangeStart.setUTCFullYear(rangeStart.getUTCFullYear() - sinceYears);
+
+    let total = 0;
+    let cursor = new Date(rangeStart);
+
+    while (cursor < rangeEnd) {
+      const chunkEnd = new Date(cursor);
+      chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 364);
+      const to = chunkEnd < rangeEnd ? chunkEnd : rangeEnd;
+
+      try {
+        total += await this.sumCommitCountsInRange(
+          login,
+          cursor.toISOString(),
+          to.toISOString(),
+          asViewer,
+        );
+      } catch {
+        /* try next chunk */
+      }
+
+      cursor = new Date(to);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    return total;
+  }
+
+  private async sumCommitCountsInRange(
+    login: string,
+    from: string,
+    to: string,
+    asViewer: boolean,
+  ): Promise<number> {
+    let sum = 0;
+    let pageCursor: string | null = null;
+    const root = asViewer ? 'viewer' : 'user(login: $login)';
+
+    const query = `
+      query($login: String, $from: DateTime!, $to: DateTime!, $cursor: String) {
+        ${root} {
+          contributionsCollection(from: $from, to: $to) {
+            commitContributions(first: 100, after: $cursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes { commitCount }
+            }
+          }
+        }
+      }
+    `;
+
+    for (;;) {
+      type SumPage = {
+        viewer?: {
+          contributionsCollection: {
+            commitContributions: {
+              pageInfo: PageInfo;
+              nodes: Array<{ commitCount: number }>;
+            };
+          };
+        } | null;
+        user?: {
+          contributionsCollection: {
+            commitContributions: {
+              pageInfo: PageInfo;
+              nodes: Array<{ commitCount: number }>;
+            };
+          };
+        } | null;
+      };
+
+      const data: SumPage = await this.query<SumPage>(query, {
+        login: asViewer ? undefined : login,
+        from,
+        to,
+        cursor: pageCursor,
+      });
+
+      const subject = asViewer ? data.viewer : data.user;
+      if (!subject) {
+        throw new Error(
+          asViewer ? 'GitHub viewer not available' : `GitHub user "${login}" not found`,
+        );
+      }
+
+      const page = subject.contributionsCollection.commitContributions;
+      for (const node of page.nodes) {
+        if (node.commitCount > 0) sum += node.commitCount;
+      }
+
+      if (!page.pageInfo.hasNextPage) break;
+      pageCursor = page.pageInfo.endCursor;
+    }
+
+    return sum;
   }
 
   async listContributedRepositories(login: string): Promise<GraphQLRepoNode[]> {
