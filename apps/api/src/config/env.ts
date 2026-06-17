@@ -12,6 +12,25 @@ const envSchema = z.object({
   SESSION_MAX_AGE_DAYS: z.coerce.number().default(30),
   ADMIN_USERNAMES: z.string().optional(),
   GITHUB_PUBLIC_TOKEN: z.string().optional(),
+  AGENT_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value !== 'false' && value !== '0'),
+  AGENT_PROVIDER: z.enum(['groq', 'openai', 'gemini']).optional(),
+  GROQ_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+  OPENAI_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+  GEMINI_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+  AGENT_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  AGENT_RATE_LIMIT_PER_HOUR: z.coerce.number().default(30),
 });
 
 export type Env = z.infer<typeof envSchema>;

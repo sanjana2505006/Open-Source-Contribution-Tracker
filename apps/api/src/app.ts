@@ -28,6 +28,8 @@ import { HeatmapService } from './services/heatmapService.js';
 import { ExploreService } from './services/exploreService.js';
 import { PortfolioHighlightsService } from './services/portfolioHighlightsService.js';
 import { JourneyService } from './services/journeyService.js';
+import { AgentService } from './services/agentService.js';
+import { createAgentRoutes } from './routes/agent.js';
 import { getPool } from './infrastructure/db/pool.js';
 
 export function createApp(env: Env) {
@@ -40,6 +42,7 @@ export function createApp(env: Env) {
   const explore = new ExploreService(env, pool);
   const portfolioHighlights = new PortfolioHighlightsService(env, pool);
   const journey = new JourneyService(pool);
+  const agent = new AgentService(env, pool);
   const authRoutes = createAuthRoutes(auth, env);
   const userRoutes = createUserRoutes(env);
   const adminRoutes = createAdminRoutes(pool);
@@ -52,6 +55,7 @@ export function createApp(env: Env) {
   const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);
   const feedbackRoutes = createFeedbackRoutes(pool);
+  const agentRoutes = createAgentRoutes(agent);
 
   const app = express();
 
@@ -149,6 +153,16 @@ export function createApp(env: Env) {
   });
   app.get('/api/v1/journey', requireAuth, (req, res, next) => {
     journeyRoutes.bundle(req, res).catch(next);
+  });
+
+  app.get('/api/v1/agent/status', (req, res, next) => {
+    agentRoutes.status(req, res).catch(next);
+  });
+  app.post('/api/v1/agent/chat', requireAuth, (req, res, next) => {
+    agentRoutes.chat(req, res).catch(next);
+  });
+  app.get('/api/v1/agent/sessions/:id', requireAuth, (req, res, next) => {
+    agentRoutes.session(req, res).catch(next);
   });
 
   if (env.NODE_ENV === 'production') {

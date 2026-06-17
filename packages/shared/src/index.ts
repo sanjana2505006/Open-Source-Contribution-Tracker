@@ -38,3 +38,12 @@ export type {
   HeatmapWeek,
   ContributionHeatmap,
 } from './types/heatmap.js';
+export type {
+  AgentContext,
+  AgentContextType,
+  AgentChatRequest,
+  AgentChatResponse,
+  AgentMessageRecord,
+  AgentSessionDetail,
+  AgentSource,
+} from './types/agent.js';

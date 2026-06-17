@@ -233,4 +233,79 @@ export class GitHubApi {
   async searchIssuesAuthored(username: string): Promise<GitHubSearchIssue[]> {
     return this.searchIssues(`author:${username} type:issue`);
   }
+
+  async getIssue(
+    owner: string,
+    repo: string,
+    number: number,
+  ): Promise<GitHubIssueDetail> {
+    return this.request<GitHubIssueDetail>(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${number}`,
+    );
+  }
+
+  async listIssueComments(
+    owner: string,
+    repo: string,
+    number: number,
+    maxPages = 3,
+  ): Promise<GitHubIssueComment[]> {
+    return this.requestAllPages<GitHubIssueComment>(
+      (page) =>
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${number}/comments?per_page=100&page=${page}`,
+      maxPages,
+    );
+  }
+
+  async getPullRequest(
+    owner: string,
+    repo: string,
+    number: number,
+  ): Promise<GitHubPullRequestDetail> {
+    return this.request<GitHubPullRequestDetail>(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}`,
+    );
+  }
 }
+
+export type GitHubIssueDetail = {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  body: string | null;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  labels: { name: string }[];
+  assignees: { login: string }[];
+  user: { login: string };
+};
+
+export type GitHubIssueComment = {
+  id: number;
+  user: { login: string } | null;
+  body: string;
+  created_at: string;
+  html_url: string;
+};
+
+export type GitHubPullRequestDetail = {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  body: string | null;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  draft: boolean;
+  user: { login: string };
+  head: { ref: string };
+  base: { ref: string };
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  commits: number;
+};

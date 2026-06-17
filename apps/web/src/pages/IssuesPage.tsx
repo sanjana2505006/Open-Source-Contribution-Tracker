@@ -8,6 +8,7 @@ import { IssueTable } from '../components/IssueTable';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
 import { fetchIssues, syncIssuesOnly } from '../lib/api';
+import { AgentPanel } from '../components/agent/AgentPanel';
 
 const DEFAULT_COUNTS: IssueCounts = {
   all: 0,
@@ -53,6 +54,8 @@ export function IssuesPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentIssue, setAgentIssue] = useState<IssueItem | null>(null);
 
   const loadIssues = useCallback(() => {
     if (!user) return;
@@ -148,14 +151,26 @@ export function IssuesPage() {
               : "Issues assigned to you, ones you've commented on, and issues you've opened — all in one inbox."
         }
         actions={
-          <button
-            type="button"
-            onClick={handleSyncIssues}
-            disabled={syncing}
-            className="btn btn-primary"
-          >
-            {syncing ? 'Syncing issues…' : 'Sync issues from GitHub'}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setAgentIssue(null);
+                setAgentOpen(true);
+              }}
+              className="btn btn-secondary"
+            >
+              Issue assistant
+            </button>
+            <button
+              type="button"
+              onClick={handleSyncIssues}
+              disabled={syncing}
+              className="btn btn-primary"
+            >
+              {syncing ? 'Syncing issues…' : 'Sync issues from GitHub'}
+            </button>
+          </>
         }
       />
 
@@ -184,9 +199,19 @@ export function IssuesPage() {
             showRepository
             variant={role === 'stuck' ? 'stuck' : 'default'}
             emptyMessage={emptyMessage}
+            onAskAgent={(issue) => {
+              setAgentIssue(issue);
+              setAgentOpen(true);
+            }}
           />
         </Panel>
       </main>
+
+      <AgentPanel
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        issue={agentIssue}
+      />
     </>
   );
 }

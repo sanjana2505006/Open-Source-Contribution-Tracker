@@ -28,6 +28,7 @@ type Props = {
   showRepository?: boolean;
   variant?: 'default' | 'stuck';
   emptyMessage?: string;
+  onAskAgent?: (issue: IssueItem) => void;
 };
 
 export function IssueTable({
@@ -36,6 +37,7 @@ export function IssueTable({
   showRepository = false,
   variant = 'default',
   emptyMessage = 'No issues found. Sync from GitHub to pull assigned, commented, and opened issues.',
+  onAskAgent,
 }: Props) {
   if (loading) {
     return (
@@ -103,6 +105,17 @@ export function IssueTable({
               >
                 {new Date(issue.occurredAt).toLocaleDateString()}
               </time>
+            )}
+
+            {onAskAgent && (
+              <button
+                type="button"
+                className="agent-issue-btn"
+                onClick={() => onAskAgent(issue)}
+                title="Ask OSCT agent about this issue"
+              >
+                Ask agent
+              </button>
             )}
           </div>
         </li>
