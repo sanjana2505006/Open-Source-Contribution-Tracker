@@ -3071,6 +3071,14 @@ html.custom-cursor-mode *::after {
   font-size: 0.8125rem;
 }
 
+.agent-panel__status-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 .agent-panel__provider {
   margin: 0 0 1rem;
   font-size: 0.75rem;

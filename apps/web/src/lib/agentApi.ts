@@ -11,20 +11,50 @@ const fetchOpts: RequestInit = {
   credentials: 'include',
 };
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isNetworkError(err: unknown): boolean {
+  return (
+    err instanceof TypeError &&
+    (err.message === 'Failed to fetch' ||
+      err.message === 'NetworkError when attempting to fetch resource.' ||
+      err.message === 'Load failed')
+  );
+}
+
+function toFetchError(err: unknown): Error {
+  if (isNetworkError(err)) {
+    return new Error(
+      'Cannot reach the API. Run a single npm run dev from the repo root and open http://localhost:5173 (if the API restarted, wait a few seconds and retry).',
+    );
+  }
+  return err instanceof Error ? err : new Error('Request failed');
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function agentFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, { ...fetchOpts, ...init });
+async function agentFetch<T>(path: string, init?: RequestInit, retries = 0): Promise<T> {
+  try {
+    const res = await fetch(path, { ...fetchOpts, ...init });
 
-  if (!res.ok) {
-    const body = await parseJson<ApiError>(res);
-    throw new Error(body.error?.message ?? `Request failed (${res.status})`);
+    if (!res.ok) {
+      const body = await parseJson<ApiError>(res);
+      throw new Error(body.error?.message ?? `Request failed (${res.status})`);
+    }
+
+    const json = await parseJson<ApiEnvelope<T>>(res);
+    return json.data;
+  } catch (err: unknown) {
+    if (retries > 0 && isNetworkError(err)) {
+      await sleep(600);
+      return agentFetch(path, init, retries - 1);
+    }
+    throw toFetchError(err);
   }
-
-  const json = await parseJson<ApiEnvelope<T>>(res);
-  return json.data;
 }
 
 export async function fetchAgentStatus(): Promise<{
@@ -34,6 +64,8 @@ export async function fetchAgentStatus(): Promise<{
 }> {
   return agentFetch<{ enabled: boolean; provider: string | null; model: string | null }>(
     '/api/v1/agent/status',
+    undefined,
+    2,
   );
 }
 

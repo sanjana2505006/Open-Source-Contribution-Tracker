@@ -20,6 +20,18 @@ async function main() {
     console.log(`API listening on http://localhost:${env.PORT}`);
   });
 
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `Port ${env.PORT} is already in use. Stop the other API process:\n` +
+          `  lsof -ti :${env.PORT} | xargs kill\n` +
+          `Then run npm run dev again (only one instance).`,
+      );
+      process.exit(1);
+    }
+    throw err;
+  });
+
   const shutdown = async () => {
     server.close();
     await closePool();

@@ -22,6 +22,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [providerInfo, setProviderInfo] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusRetry, setStatusRetry] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<AgentMessageRecord[]>([]);
   const [sources, setSources] = useState<AgentSource[]>([]);
@@ -66,7 +67,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
       });
 
     inputRef.current?.focus();
-  }, [open]);
+  }, [open, statusRetry]);
 
   useEffect(() => {
     if (!open) {
@@ -147,7 +148,16 @@ export function AgentPanel({ open, onClose, issue }: Props) {
 
         <div className="agent-panel__body">
           {statusError && (
-            <p className="alert alert-error agent-panel__error">{statusError}</p>
+            <div className="agent-panel__status-error">
+              <p className="alert alert-error agent-panel__error">{statusError}</p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setStatusRetry((n) => n + 1)}
+              >
+                Retry connection
+              </button>
+            </div>
           )}
 
           {enabled === false && !statusError && (
