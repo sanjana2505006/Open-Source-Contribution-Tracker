@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AgentContext, AgentMessageRecord, AgentSource, IssueItem } from '@osct/shared';
 import { parseIssueFromAgentItem } from '../../lib/agentContext';
 import { fetchAgentSession, fetchAgentStatus, sendAgentChat } from '../../lib/agentApi';
+import { PUBLIC_SITE_ORIGIN } from '../../lib/portfolio';
 import { AgentContextChip } from './AgentContextChip';
 import { AgentMessage } from './AgentMessage';
 
@@ -121,6 +122,9 @@ export function AgentPanel({ open, onClose, issue }: Props) {
 
   if (!open) return null;
 
+  const isDeployed =
+    typeof window !== 'undefined' && window.location.origin === PUBLIC_SITE_ORIGIN;
+
   return (
     <div className="agent-panel-backdrop" role="presentation" onClick={onClose}>
       <aside
@@ -162,13 +166,36 @@ export function AgentPanel({ open, onClose, issue }: Props) {
 
           {enabled === false && !statusError && (
             <p className="agent-panel__notice">
-              Agent is not configured on the API server. Add <code>GROQ_API_KEY</code> to{' '}
-              <code>.env</code>, then <strong>restart</strong> <code>npm run dev</code> (saving
-              .env alone is not enough). Get a free key at{' '}
-              <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">
-                console.groq.com
-              </a>
-              .
+              {isDeployed ? (
+                <>
+                  Agent is not configured on <strong>production</strong>. Pushing to GitHub does not
+                  send your local <code>.env</code> file. In the{' '}
+                  <a
+                    href="https://dashboard.render.com"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Render dashboard
+                  </a>
+                  , open your <code>osct</code> service → <strong>Environment</strong> → add{' '}
+                  <code>AGENT_PROVIDER=groq</code>, <code>GROQ_API_KEY</code> (your key), and{' '}
+                  <code>AGENT_MODEL=llama-3.3-70b-versatile</code>, then redeploy. Get a free key at{' '}
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">
+                    console.groq.com
+                  </a>
+                  .
+                </>
+              ) : (
+                <>
+                  Agent is not configured on the API server. Add <code>GROQ_API_KEY</code> to{' '}
+                  <code>.env</code>, then <strong>restart</strong> <code>npm run dev</code> (saving
+                  .env alone is not enough). Get a free key at{' '}
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">
+                    console.groq.com
+                  </a>
+                  .
+                </>
+              )}
             </p>
           )}
 
