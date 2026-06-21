@@ -19,10 +19,39 @@ export type AgentSource = {
   url: string;
 };
 
+export type AgentActionType = 'comment_on_issue';
+
+export type AgentActionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+
+export type AgentActionPayload = {
+  owner: string;
+  repo: string;
+  number: number;
+  body: string;
+};
+
+export type AgentProposedAction = {
+  id: string;
+  type: AgentActionType;
+  status: AgentActionStatus;
+  preview: {
+    owner: string;
+    repo: string;
+    number: number;
+    body: string;
+    issueUrl: string;
+  };
+  createdAt: string;
+  executedAt: string | null;
+  githubUrl: string | null;
+  errorMessage: string | null;
+};
+
 export type AgentChatResponse = {
   sessionId: string;
   reply: string;
   sources: AgentSource[];
+  proposedActions: AgentProposedAction[];
 };
 
 export type AgentMessageRecord = {
@@ -37,6 +66,22 @@ export type AgentSessionDetail = {
   contextType: AgentContextType | null;
   contextRef: string | null;
   messages: AgentMessageRecord[];
+  actions: AgentProposedAction[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type AgentActionApproveRequest = {
+  body?: string;
+};
+
+export type AgentActionApproveResponse = {
+  id: string;
+  status: 'completed';
+  githubUrl: string;
+};
+
+export type AgentActionCancelResponse = {
+  id: string;
+  status: 'cancelled';
 };

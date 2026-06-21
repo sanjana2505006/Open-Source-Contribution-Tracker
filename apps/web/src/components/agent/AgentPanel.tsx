@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AgentContext, AgentMessageRecord, AgentSource, IssueItem } from '@osct/shared';
+import type { AgentContext, AgentMessageRecord, AgentProposedAction, AgentSource, IssueItem } from '@osct/shared';
 import { parseIssueFromAgentItem } from '../../lib/agentContext';
-import { fetchAgentSession, fetchAgentStatus, sendAgentChat } from '../../lib/agentApi';
+import {
+  approveAgentAction,
+  cancelAgentAction,
+  fetchAgentSession,
+  fetchAgentStatus,
+  sendAgentChat,
+} from '../../lib/agentApi';
 import { PUBLIC_SITE_ORIGIN } from '../../lib/portfolio';
+import { AgentActionCard } from './AgentActionCard';
 import { AgentContextChip } from './AgentContextChip';
 import { AgentMessage } from './AgentMessage';
 
@@ -15,7 +22,7 @@ type Props = {
 const STARTERS = [
   'What should I do about this issue?',
   'Summarize the discussion so far.',
-  'Draft a polite follow-up comment.',
+  'Draft a follow-up comment and prepare it for posting.',
   'Why might this issue be stuck?',
 ];
 
@@ -26,6 +33,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
   const [statusRetry, setStatusRetry] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<AgentMessageRecord[]>([]);
+  const [actions, setActions] = useState<AgentProposedAction[]>([]);
   const [sources, setSources] = useState<AgentSource[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -74,6 +82,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
     if (!open) {
       setSessionId(null);
       setMessages([]);
+      setActions([]);
       setSources([]);
       setInput('');
       setError(null);
@@ -111,6 +120,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
 
       const detail = await fetchAgentSession(response.sessionId);
       setMessages(detail.messages);
+      setActions(detail.actions);
     } catch (err: unknown) {
       setMessages((prev) => prev.filter((row) => row.id !== optimisticUser.id));
       setInput(trimmed);
@@ -118,6 +128,24 @@ export function AgentPanel({ open, onClose, issue }: Props) {
     } finally {
       setSending(false);
     }
+  }
+
+  async function refreshSession(id: string) {
+    const detail = await fetchAgentSession(id);
+    setMessages(detail.messages);
+    setActions(detail.actions);
+  }
+
+  async function handleApproveAction(actionId: string, body: string) {
+    if (!sessionId) return;
+    await approveAgentAction(actionId, body);
+    await refreshSession(sessionId);
+  }
+
+  async function handleCancelAction(actionId: string) {
+    if (!sessionId) return;
+    await cancelAgentAction(actionId);
+    await refreshSession(sessionId);
   }
 
   if (!open) return null;
@@ -136,12 +164,12 @@ export function AgentPanel({ open, onClose, issue }: Props) {
       >
         <header className="agent-panel__header">
           <div>
-            <p className="agent-panel__eyebrow">Phase 1 · read-only</p>
+            <p className="agent-panel__eyebrow">Phase 2 · approve to post</p>
             <h2 id="agent-panel-title" className="agent-panel__title">
               Issue assistant
             </h2>
             <p className="agent-panel__subtitle">
-              Triage stuck issues, summarize threads, and draft comments to copy.
+              Triage stuck issues, summarize threads, and post approved comments to GitHub.
             </p>
             <AgentContextChip context={context} label={contextLabel} />
           </div>
@@ -225,6 +253,19 @@ export function AgentPanel({ open, onClose, issue }: Props) {
           {messages.map((message) => (
             <AgentMessage key={message.id} role={message.role} content={message.content} />
           ))}
+
+          {actions.length > 0 && (
+            <div className="agent-panel__actions">
+              {actions.map((action) => (
+                <AgentActionCard
+                  key={action.id}
+                  action={action}
+                  onApprove={handleApproveAction}
+                  onCancel={handleCancelAction}
+                />
+              ))}
+            </div>
+          )}
 
           {sending && <p className="agent-panel__typing">Thinking…</p>}
           {error && <p className="alert alert-error agent-panel__error">{error}</p>}

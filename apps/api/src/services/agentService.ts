@@ -1,29 +1,56 @@
-import type { AgentChatRequest, AgentChatResponse, AgentSessionDetail } from '@osct/shared';
+import type {
+  AgentActionApproveRequest,
+  AgentActionApproveResponse,
+  AgentActionCancelResponse,
+  AgentChatRequest,
+  AgentChatResponse,
+  AgentProposedAction,
+  AgentSessionDetail,
+} from '@osct/shared';
 import type { Env } from '../config/env.js';
 import {
   createAgentLlmClient,
 } from '../infrastructure/llm/createAgentLlmClient.js';
 import { LlmApiError } from '../infrastructure/llm/types.js';
 import type { AgentLlmConfig } from '../infrastructure/llm/types.js';
+import { GitHubApi } from '../infrastructure/github/api.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { AgentRepository } from '../repositories/agentRepository.js';
+import {
+  AgentRepository,
+  mapAgentActionRow,
+} from '../repositories/agentRepository.js';
+import { ContributionRepository } from '../repositories/contributionRepository.js';
+import { OAuthRepository } from '../repositories/oauthRepository.js';
+import { ActionPolicy } from './actionPolicy.js';
+import { parseAgentActionBlocks } from './agentActionParser.js';
 import { AgentTools, contextRefFromAgentContext } from './agentTools.js';
 import type pg from 'pg';
 
-const SYSTEM_PROMPT = `You are the OSCT Issue Assistant — a read-only helper inside Open Source Contribution Tracker.
+const SYSTEM_PROMPT = `You are the OSCT Issue Assistant inside Open Source Contribution Tracker.
 
 Your job:
 - Help the user understand open-source issues and pull requests in their inbox
 - Explain why an issue might be stuck and what to do next
-- Draft helpful GitHub comments they can copy (you cannot post to GitHub yet)
+- Draft helpful GitHub comments and propose posting them (user must approve before anything is posted)
 - Suggest concrete next steps: clarify requirements, ask for assignment, provide repro steps, link a PR
 
 Rules:
 - Use only the context provided below. If data is missing, say so and suggest syncing from GitHub.
 - Be concise, friendly, and actionable. Use short paragraphs or bullet lists.
-- Never claim you posted, merged, closed, or changed anything on GitHub.
-- When drafting a comment, wrap it in a fenced code block labeled "Suggested comment".
-- If the user asks about repos or issues not in context, explain you only see their synced OSCT data plus the focused issue/PR when selected.`;
+- Never claim you posted, merged, closed, or changed anything on GitHub unless the user has approved an action in the UI.
+- When drafting a comment, show it clearly in your reply.
+- If the user wants to post a comment (or asks you to prepare one for GitHub), include an agent_action block with the exact comment text:
+
+\`\`\`agent_action
+{"type":"comment_on_issue","owner":"OWNER","repo":"REPO","number":123,"body":"Exact comment text to post"}
+\`\`\`
+
+Agent action rules:
+- Only propose comment_on_issue for issues in the user's context
+- The body must be the final comment text (plain text or GitHub-flavored markdown)
+- Use owner/repo/number from the focused issue when available
+- You propose actions — the user reviews and clicks Approve in the UI before anything is posted
+- If the user asks about repos or issues not in context, explain you only see their synced OSCT data plus the focused issue when selected.`;
 
 type RateBucket = {
   count: number;
@@ -33,6 +60,8 @@ type RateBucket = {
 export class AgentService {
   private agents: AgentRepository;
   private tools: AgentTools;
+  private policy: ActionPolicy;
+  private oauth: OAuthRepository;
   private llm: AgentLlmConfig | null;
   private rateLimits = new Map<string, RateBucket>();
 
@@ -42,6 +71,8 @@ export class AgentService {
   ) {
     this.agents = new AgentRepository(db);
     this.tools = new AgentTools(env, db);
+    this.policy = new ActionPolicy(new ContributionRepository(db));
+    this.oauth = new OAuthRepository(db);
     this.llm = createAgentLlmClient(env);
   }
 
@@ -99,9 +130,9 @@ export class AgentService {
         content: row.content,
       }));
 
-    let reply: string;
+    let rawReply: string;
     try {
-      reply = await this.llm!.client.generateReply({
+      rawReply = await this.llm!.client.generateReply({
         systemInstruction: `${SYSTEM_PROMPT}\n\n---\n\n# User context\n\n${contextBundle.text}`,
         messages: [...priorTurns, { role: 'user', content: message }],
       });
@@ -109,17 +140,43 @@ export class AgentService {
       throw toAgentLlmError(err);
     }
 
+    const { cleanReply, proposals } = parseAgentActionBlocks(rawReply);
+    const proposedActions: AgentProposedAction[] = [];
+
+    for (const proposal of proposals) {
+      try {
+        this.policy.assertCommentPayload(proposal);
+        await this.policy.assertIssueInUserScope(userId, proposal);
+        const row = await this.agents.createAction({
+          sessionId: session.id,
+          userId,
+          actionType: 'comment_on_issue',
+          payload: proposal,
+        });
+        proposedActions.push(mapAgentActionRow(row));
+      } catch (err) {
+        if (err instanceof AppError && err.statusCode === 403) {
+          // Skip out-of-scope proposals silently — assistant can still explain in text.
+          continue;
+        }
+        if (err instanceof AppError) {
+          throw err;
+        }
+      }
+    }
+
     await this.agents.addMessage({
       sessionId: session.id,
       role: 'assistant',
-      content: reply,
+      content: cleanReply || rawReply,
     });
     await this.agents.touchSession(session.id);
 
     return {
       sessionId: session.id,
-      reply,
+      reply: cleanReply || rawReply,
       sources: contextBundle.sources,
+      proposedActions,
     };
   }
 
@@ -129,7 +186,10 @@ export class AgentService {
       throw new AppError(404, 'Agent session not found', 'NOT_FOUND');
     }
 
-    const messages = await this.agents.listMessages(sessionId, 50);
+    const [messages, actionRows] = await Promise.all([
+      this.agents.listMessages(sessionId, 50),
+      this.agents.listActionsForSession(sessionId, 20),
+    ]);
 
     return {
       id: session.id,
@@ -150,7 +210,85 @@ export class AgentService {
           content: row.content,
           createdAt: row.created_at.toISOString(),
         })),
+      actions: actionRows.map(mapAgentActionRow),
     };
+  }
+
+  async approveAction(
+    userId: string,
+    actionId: string,
+    input: AgentActionApproveRequest,
+  ): Promise<AgentActionApproveResponse> {
+    this.assertEnabled();
+
+    const action = await this.agents.getActionForUser(actionId, userId);
+    if (!action) {
+      throw new AppError(404, 'Agent action not found', 'NOT_FOUND');
+    }
+    if (action.status !== 'pending') {
+      throw new AppError(400, 'This action is no longer pending', 'VALIDATION_ERROR');
+    }
+
+    const payload = {
+      ...action.payload,
+      body: input.body?.trim() || action.payload.body,
+    };
+
+    this.policy.assertCommentPayload(payload);
+    await this.policy.assertIssueInUserScope(userId, payload);
+
+    if (input.body?.trim() && input.body.trim() !== action.payload.body) {
+      await this.agents.updateActionPayload(actionId, payload);
+    }
+
+    const token = await this.oauth.getAccessToken(userId, this.env.SESSION_SECRET);
+    if (!token) {
+      throw new AppError(
+        401,
+        'GitHub token missing. Sign out and sign in again to post comments.',
+        'UNAUTHORIZED',
+      );
+    }
+
+    const gh = new GitHubApi(token);
+
+    try {
+      const comment = await gh.createIssueComment(
+        payload.owner,
+        payload.repo,
+        payload.number,
+        payload.body,
+      );
+
+      await this.agents.markActionCompleted(actionId, {
+        html_url: comment.html_url,
+        id: comment.id,
+      });
+
+      return {
+        id: actionId,
+        status: 'completed',
+        githubUrl: comment.html_url,
+      };
+    } catch (err) {
+      const message = toGitHubWriteError(err);
+      await this.agents.markActionFailed(actionId, message);
+      throw new AppError(502, message, 'GITHUB_WRITE_FAILED');
+    }
+  }
+
+  async cancelAction(userId: string, actionId: string): Promise<AgentActionCancelResponse> {
+    const action = await this.agents.getActionForUser(actionId, userId);
+    if (!action) {
+      throw new AppError(404, 'Agent action not found', 'NOT_FOUND');
+    }
+    if (action.status !== 'pending') {
+      throw new AppError(400, 'This action is no longer pending', 'VALIDATION_ERROR');
+    }
+
+    await this.agents.markActionCancelled(actionId);
+
+    return { id: actionId, status: 'cancelled' };
   }
 
   private assertEnabled(): void {
@@ -216,4 +354,22 @@ function toAgentLlmError(err: unknown): AppError {
   }
 
   return new AppError(502, 'Agent request failed', 'LLM_ERROR');
+}
+
+function toGitHubWriteError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return 'Failed to post comment on GitHub';
+  }
+
+  if (err.message.includes('(403)')) {
+    return 'GitHub rejected the comment (403). Sign out and sign in again to refresh your repo permissions.';
+  }
+  if (err.message.includes('(404)')) {
+    return 'Issue not found on GitHub. It may have been moved or deleted.';
+  }
+  if (err.message.includes('(422)')) {
+    return 'GitHub rejected the comment (422). The issue may be locked or the comment is invalid.';
+  }
+
+  return err.message.slice(0, 400);
 }

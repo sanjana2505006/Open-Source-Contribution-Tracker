@@ -46,4 +46,11 @@ export type {
   AgentMessageRecord,
   AgentSessionDetail,
   AgentSource,
+  AgentActionType,
+  AgentActionStatus,
+  AgentActionPayload,
+  AgentProposedAction,
+  AgentActionApproveRequest,
+  AgentActionApproveResponse,
+  AgentActionCancelResponse,
 } from './types/agent.js';

@@ -3116,6 +3116,94 @@ html.custom-cursor-mode *::after {
   border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
 }
 
+.agent-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.agent-action-card {
+  padding: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-panel));
+}
+
+.agent-action-card--completed {
+  border-color: color-mix(in srgb, var(--color-ok) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-ok) 8%, var(--color-panel));
+}
+
+.agent-action-card--failed {
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+}
+
+.agent-action-card--cancelled {
+  opacity: 0.75;
+}
+
+.agent-action-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.agent-action-card__label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.agent-action-card__target {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.agent-action-card__body {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.agent-action-card__hint {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.agent-action-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.agent-action-card__status {
+  font-size: 0.8125rem;
+}
+
+.agent-action-card__success {
+  margin: 0 0 0.375rem;
+  color: var(--color-ok);
+}
+
+.agent-action-card__error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+}
+
 .agent-panel__sources {
   margin-top: 1rem;
   padding-top: 1rem;

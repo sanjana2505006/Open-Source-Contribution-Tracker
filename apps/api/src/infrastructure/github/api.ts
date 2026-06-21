@@ -54,7 +54,11 @@ type Page<T> = T[];
 export class GitHubApi {
   constructor(private token: string) {}
 
-  private async request<T>(path: string, auth = true): Promise<T> {
+  private async request<T>(
+    path: string,
+    auth = true,
+    init?: { method?: string; body?: string },
+  ): Promise<T> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
@@ -62,8 +66,15 @@ export class GitHubApi {
     if (auth && this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
+    if (init?.body) {
+      headers['Content-Type'] = 'application/json';
+    }
 
-    const res = await fetch(`https://api.github.com${path}`, { headers });
+    const res = await fetch(`https://api.github.com${path}`, {
+      method: init?.method ?? 'GET',
+      headers,
+      body: init?.body,
+    });
 
     if (res.status === 403 || res.status === 429) {
       const resetHeader = res.headers.get('x-ratelimit-reset');
@@ -264,6 +275,22 @@ export class GitHubApi {
   ): Promise<GitHubPullRequestDetail> {
     return this.request<GitHubPullRequestDetail>(
       `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}`,
+    );
+  }
+
+  async createIssueComment(
+    owner: string,
+    repo: string,
+    number: number,
+    body: string,
+  ): Promise<GitHubIssueComment> {
+    return this.request<GitHubIssueComment>(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${number}/comments`,
+      true,
+      {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      },
     );
   }
 }

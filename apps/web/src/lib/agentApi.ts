@@ -1,4 +1,6 @@
 import type {
+  AgentActionApproveResponse,
+  AgentActionCancelResponse,
   AgentChatRequest,
   AgentChatResponse,
   AgentSessionDetail,
@@ -79,4 +81,25 @@ export async function sendAgentChat(body: AgentChatRequest): Promise<AgentChatRe
 
 export async function fetchAgentSession(sessionId: string): Promise<AgentSessionDetail> {
   return agentFetch<AgentSessionDetail>(`/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export async function approveAgentAction(
+  actionId: string,
+  body?: string,
+): Promise<AgentActionApproveResponse> {
+  return agentFetch<AgentActionApproveResponse>(
+    `/api/v1/agent/actions/${encodeURIComponent(actionId)}/approve`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body ? { body } : {}),
+    },
+  );
+}
+
+export async function cancelAgentAction(actionId: string): Promise<AgentActionCancelResponse> {
+  return agentFetch<AgentActionCancelResponse>(
+    `/api/v1/agent/actions/${encodeURIComponent(actionId)}/cancel`,
+    { method: 'POST' },
+  );
 }

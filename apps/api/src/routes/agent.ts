@@ -17,6 +17,10 @@ const chatBodySchema = z.object({
   context: agentContextSchema.optional(),
 });
 
+const approveBodySchema = z.object({
+  body: z.string().min(1).max(65536).optional(),
+});
+
 export function createAgentRoutes(agent: AgentService) {
   return {
     async chat(req: Request, res: Response): Promise<void> {
@@ -41,6 +45,35 @@ export function createAgentRoutes(agent: AgentService) {
       }
 
       const data = await agent.getSession(req.user.id, sessionId);
+      res.json({ data });
+    },
+
+    async approve(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const actionId = req.params.id;
+      if (!actionId) {
+        throw new AppError(400, 'Action id is required', 'VALIDATION_ERROR');
+      }
+
+      const parsed = approveBodySchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        throw new AppError(400, parsed.error.issues[0]?.message ?? 'Invalid request', 'VALIDATION_ERROR');
+      }
+
+      const data = await agent.approveAction(req.user.id, actionId, parsed.data);
+      res.json({ data });
+    },
+
+    async cancel(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const actionId = req.params.id;
+      if (!actionId) {
+        throw new AppError(400, 'Action id is required', 'VALIDATION_ERROR');
+      }
+
+      const data = await agent.cancelAction(req.user.id, actionId);
       res.json({ data });
     },
 
