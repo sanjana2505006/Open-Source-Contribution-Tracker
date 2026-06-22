@@ -21,6 +21,14 @@ const approveBodySchema = z.object({
   body: z.string().min(1).max(65536).optional(),
 });
 
+const proposeBodySchema = z.object({
+  sessionId: z.string().uuid(),
+  owner: z.string().trim().min(1),
+  repo: z.string().trim().min(1),
+  number: z.coerce.number().int().positive(),
+  body: z.string().min(1).max(65536),
+});
+
 export function createAgentRoutes(agent: AgentService) {
   return {
     async chat(req: Request, res: Response): Promise<void> {
@@ -74,6 +82,18 @@ export function createAgentRoutes(agent: AgentService) {
       }
 
       const data = await agent.cancelAction(req.user.id, actionId);
+      res.json({ data });
+    },
+
+    async propose(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const parsed = proposeBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new AppError(400, parsed.error.issues[0]?.message ?? 'Invalid request', 'VALIDATION_ERROR');
+      }
+
+      const data = await agent.proposeAction(req.user.id, parsed.data);
       res.json({ data });
     },
 

@@ -164,6 +164,9 @@ export function createApp(env: Env) {
   app.get('/api/v1/agent/sessions/:id', requireAuth, (req, res, next) => {
     agentRoutes.session(req, res).catch(next);
   });
+  app.post('/api/v1/agent/actions/propose', requireAuth, (req, res, next) => {
+    agentRoutes.propose(req, res).catch(next);
+  });
   app.post('/api/v1/agent/actions/:id/approve', requireAuth, (req, res, next) => {
     agentRoutes.approve(req, res).catch(next);
   });

@@ -3123,6 +3123,17 @@ html.custom-cursor-mode *::after {
   margin: 1rem 0;
 }
 
+.agent-panel__actions--resolved {
+  opacity: 0.9;
+}
+
+.agent-panel__actions-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
 .agent-action-card {
   padding: 0.875rem;
   border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
@@ -3182,6 +3193,17 @@ html.custom-cursor-mode *::after {
   margin: 0.5rem 0 0.75rem;
   font-size: 0.75rem;
   color: var(--color-muted);
+}
+
+.agent-action-card__count {
+  margin: 0.375rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+}
+
+.agent-action-card__count--over {
+  color: var(--color-danger);
+  font-weight: 600;
 }
 
 .agent-action-card__actions {
@@ -3260,6 +3282,73 @@ html.custom-cursor-mode *::after {
 .agent-message--assistant .agent-message__body {
   background: var(--color-panel);
   border: 1px solid var(--color-border);
+}
+
+.agent-message__body--rich {
+  white-space: normal;
+}
+
+.agent-message__paragraph {
+  margin: 0 0 0.75rem;
+  white-space: pre-wrap;
+}
+
+.agent-message__paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.agent-message__code-block {
+  margin: 0.75rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.agent-message__code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-panel));
+}
+
+.agent-message__code-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.agent-message__code-btn {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-size: 0.6875rem;
+  cursor: pointer;
+}
+
+.agent-message__code-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.agent-message__code {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.agent-message__actions {
+  margin-top: 0.5rem;
 }
 
 .agent-issue-btn {

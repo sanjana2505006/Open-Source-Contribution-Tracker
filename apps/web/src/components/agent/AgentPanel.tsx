@@ -6,6 +6,7 @@ import {
   cancelAgentAction,
   fetchAgentSession,
   fetchAgentStatus,
+  proposeAgentAction,
   sendAgentChat,
 } from '../../lib/agentApi';
 import { PUBLIC_SITE_ORIGIN } from '../../lib/portfolio';
@@ -142,6 +143,20 @@ export function AgentPanel({ open, onClose, issue }: Props) {
     await refreshSession(sessionId);
   }
 
+  async function handlePrepareComment(body: string) {
+    if (!sessionId || context.type !== 'issue' || !context.owner || !context.repo || !context.number) {
+      return;
+    }
+    await proposeAgentAction({
+      sessionId,
+      owner: context.owner,
+      repo: context.repo,
+      number: context.number,
+      body,
+    });
+    await refreshSession(sessionId);
+  }
+
   async function handleCancelAction(actionId: string) {
     if (!sessionId) return;
     await cancelAgentAction(actionId);
@@ -149,6 +164,9 @@ export function AgentPanel({ open, onClose, issue }: Props) {
   }
 
   if (!open) return null;
+
+  const pendingActions = actions.filter((action) => action.status === 'pending');
+  const resolvedActions = actions.filter((action) => action.status !== 'pending');
 
   const isDeployed =
     typeof window !== 'undefined' && window.location.origin === PUBLIC_SITE_ORIGIN;
@@ -164,7 +182,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
       >
         <header className="agent-panel__header">
           <div>
-            <p className="agent-panel__eyebrow">Phase 2 · approve to post</p>
+            <p className="agent-panel__eyebrow">AI · review before posting</p>
             <h2 id="agent-panel-title" className="agent-panel__title">
               Issue assistant
             </h2>
@@ -251,12 +269,34 @@ export function AgentPanel({ open, onClose, issue }: Props) {
           )}
 
           {messages.map((message) => (
-            <AgentMessage key={message.id} role={message.role} content={message.content} />
+            <AgentMessage
+              key={message.id}
+              role={message.role}
+              content={message.content}
+              issueContext={context.type === 'issue' ? context : null}
+              canPropose={enabled === true && Boolean(sessionId)}
+              onPrepareComment={handlePrepareComment}
+            />
           ))}
 
-          {actions.length > 0 && (
+          {pendingActions.length > 0 && (
             <div className="agent-panel__actions">
-              {actions.map((action) => (
+              <p className="agent-panel__actions-label">Ready to post — review & approve</p>
+              {pendingActions.map((action) => (
+                <AgentActionCard
+                  key={action.id}
+                  action={action}
+                  onApprove={handleApproveAction}
+                  onCancel={handleCancelAction}
+                />
+              ))}
+            </div>
+          )}
+
+          {resolvedActions.length > 0 && (
+            <div className="agent-panel__actions agent-panel__actions--resolved">
+              <p className="agent-panel__actions-label">Recent activity</p>
+              {resolvedActions.map((action) => (
                 <AgentActionCard
                   key={action.id}
                   action={action}

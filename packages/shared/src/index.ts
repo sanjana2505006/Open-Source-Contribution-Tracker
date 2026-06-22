@@ -53,4 +53,6 @@ export type {
   AgentActionApproveRequest,
   AgentActionApproveResponse,
   AgentActionCancelResponse,
+  AgentActionProposeRequest,
+  AgentActionProposeResponse,
 } from './types/agent.js';

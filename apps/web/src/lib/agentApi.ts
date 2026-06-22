@@ -1,6 +1,7 @@
 import type {
   AgentActionApproveResponse,
   AgentActionCancelResponse,
+  AgentActionProposeResponse,
   AgentChatRequest,
   AgentChatResponse,
   AgentSessionDetail,
@@ -81,6 +82,20 @@ export async function sendAgentChat(body: AgentChatRequest): Promise<AgentChatRe
 
 export async function fetchAgentSession(sessionId: string): Promise<AgentSessionDetail> {
   return agentFetch<AgentSessionDetail>(`/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export async function proposeAgentAction(input: {
+  sessionId: string;
+  owner: string;
+  repo: string;
+  number: number;
+  body: string;
+}): Promise<AgentActionProposeResponse> {
+  return agentFetch<AgentActionProposeResponse>('/api/v1/agent/actions/propose', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 }
 
 export async function approveAgentAction(

@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AgentProposedAction } from '@osct/shared';
+import { copyToClipboard } from '../../lib/agentMessageUtils';
+
+const GITHUB_COMMENT_LIMIT = 65536;
 
 type Props = {
   action: AgentProposedAction;
@@ -11,11 +14,27 @@ export function AgentActionCard({ action, onApprove, onCancel }: Props) {
   const [body, setBody] = useState(action.preview.body);
   const [busy, setBusy] = useState<'approve' | 'cancel' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const isPending = action.status === 'pending';
   const isCompleted = action.status === 'completed';
   const isFailed = action.status === 'failed';
   const isCancelled = action.status === 'cancelled';
+
+  async function handleCopy() {
+    const ok = await copyToClipboard(body);
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  const charCount = body.length;
+  const overLimit = charCount > GITHUB_COMMENT_LIMIT;
+
+  useEffect(() => {
+    setBody(action.preview.body);
+  }, [action.id, action.preview.body]);
 
   async function handleApprove() {
     setBusy('approve');
@@ -66,6 +85,9 @@ export function AgentActionCard({ action, onApprove, onCancel }: Props) {
             onChange={(event) => setBody(event.target.value)}
             disabled={busy !== null}
           />
+          <p className={`agent-action-card__count${overLimit ? ' agent-action-card__count--over' : ''}`}>
+            {charCount.toLocaleString()} / {GITHUB_COMMENT_LIMIT.toLocaleString()} characters
+          </p>
           <p className="agent-action-card__hint">
             Review and edit before posting. Nothing is sent until you approve.
           </p>
@@ -74,9 +96,17 @@ export function AgentActionCard({ action, onApprove, onCancel }: Props) {
               type="button"
               className="btn btn-primary btn-sm"
               onClick={handleApprove}
-              disabled={busy !== null || !body.trim()}
+              disabled={busy !== null || !body.trim() || overLimit}
             >
               {busy === 'approve' ? 'Posting…' : 'Approve & post'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleCopy}
+              disabled={busy !== null || !body.trim()}
+            >
+              {copied ? 'Copied' : 'Copy'}
             </button>
             <button
               type="button"

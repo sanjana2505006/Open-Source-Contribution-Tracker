@@ -81,7 +81,18 @@ export type AgentActionApproveResponse = {
   githubUrl: string;
 };
 
+export type AgentActionProposeRequest = {
+  sessionId: string;
+  owner: string;
+  repo: string;
+  number: number;
+  body: string;
+};
+
+export type AgentActionProposeResponse = AgentProposedAction;
+
 export type AgentActionCancelResponse = {
   id: string;
   status: 'cancelled';
 };
+

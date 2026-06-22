@@ -2,6 +2,8 @@ import type {
   AgentActionApproveRequest,
   AgentActionApproveResponse,
   AgentActionCancelResponse,
+  AgentActionProposeRequest,
+  AgentActionProposeResponse,
   AgentChatRequest,
   AgentChatResponse,
   AgentProposedAction,
@@ -22,7 +24,7 @@ import {
 import { ContributionRepository } from '../repositories/contributionRepository.js';
 import { OAuthRepository } from '../repositories/oauthRepository.js';
 import { ActionPolicy } from './actionPolicy.js';
-import { parseAgentActionBlocks } from './agentActionParser.js';
+import { parseAgentActionBlocks, inferProposalsFromDraft } from './agentActionParser.js';
 import { AgentTools, contextRefFromAgentContext } from './agentTools.js';
 import type pg from 'pg';
 
@@ -38,8 +40,8 @@ Rules:
 - Use only the context provided below. If data is missing, say so and suggest syncing from GitHub.
 - Be concise, friendly, and actionable. Use short paragraphs or bullet lists.
 - Never claim you posted, merged, closed, or changed anything on GitHub unless the user has approved an action in the UI.
-- When drafting a comment, show it clearly in your reply.
-- If the user wants to post a comment (or asks you to prepare one for GitHub), include an agent_action block with the exact comment text:
+- When drafting a comment for GitHub, put the exact text in a fenced code block labeled "Suggested comment".
+- If the user wants to post (or asks you to prepare for posting), also include an agent_action block with the exact comment text:
 
 \`\`\`agent_action
 {"type":"comment_on_issue","owner":"OWNER","repo":"REPO","number":123,"body":"Exact comment text to post"}
@@ -140,30 +142,18 @@ export class AgentService {
       throw toAgentLlmError(err);
     }
 
-    const { cleanReply, proposals } = parseAgentActionBlocks(rawReply);
-    const proposedActions: AgentProposedAction[] = [];
+    const { cleanReply, proposals: explicitProposals } = parseAgentActionBlocks(rawReply);
+    const draftProposals =
+      explicitProposals.length === 0
+        ? inferProposalsFromDraft(rawReply, message, input.context)
+        : [];
+    const allProposals = [...explicitProposals, ...draftProposals];
 
-    for (const proposal of proposals) {
-      try {
-        this.policy.assertCommentPayload(proposal);
-        await this.policy.assertIssueInUserScope(userId, proposal);
-        const row = await this.agents.createAction({
-          sessionId: session.id,
-          userId,
-          actionType: 'comment_on_issue',
-          payload: proposal,
-        });
-        proposedActions.push(mapAgentActionRow(row));
-      } catch (err) {
-        if (err instanceof AppError && err.statusCode === 403) {
-          // Skip out-of-scope proposals silently — assistant can still explain in text.
-          continue;
-        }
-        if (err instanceof AppError) {
-          throw err;
-        }
-      }
-    }
+    const proposedActions = await this.createProposals(
+      userId,
+      session.id,
+      allProposals,
+    );
 
     await this.agents.addMessage({
       sessionId: session.id,
@@ -212,6 +202,37 @@ export class AgentService {
         })),
       actions: actionRows.map(mapAgentActionRow),
     };
+  }
+
+  async proposeAction(
+    userId: string,
+    input: AgentActionProposeRequest,
+  ): Promise<AgentActionProposeResponse> {
+    this.assertEnabled();
+
+    const session = await this.agents.getSessionForUser(input.sessionId, userId);
+    if (!session) {
+      throw new AppError(404, 'Agent session not found', 'NOT_FOUND');
+    }
+
+    const payload = {
+      owner: input.owner.trim(),
+      repo: input.repo.trim(),
+      number: input.number,
+      body: input.body.trim(),
+    };
+
+    this.policy.assertCommentPayload(payload);
+    await this.policy.assertIssueInUserScope(userId, payload);
+
+    const row = await this.agents.createAction({
+      sessionId: session.id,
+      userId,
+      actionType: 'comment_on_issue',
+      payload,
+    });
+
+    return mapAgentActionRow(row);
   }
 
   async approveAction(
@@ -320,6 +341,37 @@ export class AgentService {
     }
 
     bucket.count += 1;
+  }
+
+  private async createProposals(
+    userId: string,
+    sessionId: string,
+    proposals: Array<{ owner: string; repo: string; number: number; body: string }>,
+  ): Promise<AgentProposedAction[]> {
+    const proposedActions: AgentProposedAction[] = [];
+
+    for (const proposal of proposals) {
+      try {
+        this.policy.assertCommentPayload(proposal);
+        await this.policy.assertIssueInUserScope(userId, proposal);
+        const row = await this.agents.createAction({
+          sessionId,
+          userId,
+          actionType: 'comment_on_issue',
+          payload: proposal,
+        });
+        proposedActions.push(mapAgentActionRow(row));
+      } catch (err) {
+        if (err instanceof AppError && err.statusCode === 403) {
+          continue;
+        }
+        if (err instanceof AppError) {
+          throw err;
+        }
+      }
+    }
+
+    return proposedActions;
   }
 }
 
