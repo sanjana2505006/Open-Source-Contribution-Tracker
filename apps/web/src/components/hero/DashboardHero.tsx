@@ -46,7 +46,14 @@ export function DashboardHero({
       <div className="hero-mirofish__center">
         <h1 className="hero-mirofish__title">
           {title}{' '}
-          <span className="hero-mirofish__highlight">
+          <span
+            className={[
+              'hero-mirofish__highlight',
+              solo && 'hero-mirofish__highlight--gradient',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             {highlight}
             <svg className="hero-mirofish__underline" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden>
               <path

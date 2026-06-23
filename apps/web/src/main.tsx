@@ -1,4 +1,5 @@
 import './styles/globals.css';
+import './styles/hero-polish.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
