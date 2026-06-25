@@ -18,16 +18,26 @@ type Props = {
   open: boolean;
   onClose: () => void;
   issue?: IssueItem | null;
+  starters?: string[];
+  panelTitle?: string;
+  panelSubtitle?: string;
 };
 
-const STARTERS = [
+const DEFAULT_STARTERS = [
   'What should I do about this issue?',
   'Summarize the discussion so far.',
   'Draft a follow-up comment and prepare it for posting.',
   'Why might this issue be stuck?',
 ];
 
-export function AgentPanel({ open, onClose, issue }: Props) {
+export function AgentPanel({
+  open,
+  onClose,
+  issue,
+  starters = DEFAULT_STARTERS,
+  panelTitle = 'Issue assistant',
+  panelSubtitle = 'Triage stuck issues, summarize threads, and post approved comments to GitHub.',
+}: Props) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [providerInfo, setProviderInfo] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -184,11 +194,9 @@ export function AgentPanel({ open, onClose, issue }: Props) {
           <div>
             <p className="agent-panel__eyebrow">AI · review before posting</p>
             <h2 id="agent-panel-title" className="agent-panel__title">
-              Issue assistant
+              {panelTitle}
             </h2>
-            <p className="agent-panel__subtitle">
-              Triage stuck issues, summarize threads, and post approved comments to GitHub.
-            </p>
+            <p className="agent-panel__subtitle">{panelSubtitle}</p>
             <AgentContextChip context={context} label={contextLabel} />
           </div>
           <button type="button" className="agent-panel__close" onClick={onClose} aria-label="Close">
@@ -253,7 +261,7 @@ export function AgentPanel({ open, onClose, issue }: Props) {
             <div className="agent-panel__starters">
               <p className="agent-panel__starters-label">Try asking:</p>
               <div className="agent-panel__starter-list">
-                {STARTERS.map((starter) => (
+                {starters.map((starter) => (
                   <button
                     key={starter}
                     type="button"
@@ -334,7 +342,9 @@ export function AgentPanel({ open, onClose, issue }: Props) {
             className="agent-panel__input"
             rows={3}
             placeholder={
-              issue ? 'Ask about this issue…' : 'Ask about your open issues or stuck work…'
+              issue
+                ? 'Ask about this stuck issue…'
+                : 'Ask about your stuck issues or weekly plan…'
             }
             value={input}
             onChange={(event) => setInput(event.target.value)}

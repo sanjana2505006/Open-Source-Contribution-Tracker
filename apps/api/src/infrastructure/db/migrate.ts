@@ -28,8 +28,8 @@ export async function runMigrations(env: Env): Promise<void> {
     files = (await readdir(migrationsDir))
       .filter((f) => f.endsWith('.sql'))
       .sort();
-  } catch {
-    console.warn('No migrations directory found, skipping.');
+  } catch (err) {
+    console.warn(`Migrations directory not found (${migrationsDir}), skipping.`, err);
     return;
   }
 

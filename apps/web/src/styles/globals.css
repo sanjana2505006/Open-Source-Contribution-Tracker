@@ -834,6 +834,26 @@ button:disabled {
   cursor: pointer;
 }
 
+.digest-toggle--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.digest-email-setup-alert {
+  margin-bottom: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-warn) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warn) 8%, var(--color-panel));
+}
+
+.digest-email-setup-alert__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .digest-issue-list {
   margin: 0;
   padding: 0;
@@ -845,8 +865,20 @@ button:disabled {
   border-top: 1px solid var(--color-border);
 }
 
+.digest-issue__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.65rem 0.75rem;
+}
+
 .digest-issue:first-child {
   border-top: none;
+}
+
+.digest-issue__main {
+  flex: 1;
+  min-width: 0;
 }
 
 .digest-issue__title {
