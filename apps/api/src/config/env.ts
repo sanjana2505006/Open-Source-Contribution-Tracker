@@ -31,6 +31,18 @@ const envSchema = z.object({
     .transform((value) => value?.trim() || undefined),
   AGENT_MODEL: z.string().default('llama-3.3-70b-versatile'),
   AGENT_RATE_LIMIT_PER_HOUR: z.coerce.number().default(30),
+  RESEND_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+  DIGEST_FROM_EMAIL: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+  CRON_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
 });
 
 export type Env = z.infer<typeof envSchema>;

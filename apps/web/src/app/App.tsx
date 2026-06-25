@@ -13,6 +13,7 @@ import { SecurityPage } from '../pages/SecurityPage';
 import { FeedbackPage } from '../pages/FeedbackPage';
 import { PortfolioPage } from '../pages/PortfolioPage';
 import { RepoPage } from '../pages/RepoPage';
+import { DigestPage } from '../pages/DigestPage';
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
               <Route path="repos" element={<RepositoriesPage />} />
               <Route path="repo/:owner/:name" element={<RepoPage />} />
               <Route path="issues" element={<IssuesPage />} />
+              <Route path="digest" element={<DigestPage />} />
               <Route path="journey" element={<JourneyPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="privacy" element={<PrivacyPage />} />

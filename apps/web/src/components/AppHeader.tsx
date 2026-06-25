@@ -7,6 +7,7 @@ const links = [
   { to: '/explore', label: 'Explore', end: false },
   { to: '/repos', label: 'My PRs', end: false },
   { to: '/issues', label: 'My Issues', end: false },
+  { to: '/digest', label: 'Digest', end: false },
   { to: '/journey', label: 'Journey', end: false },
 ];
 

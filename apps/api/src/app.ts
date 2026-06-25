@@ -29,7 +29,9 @@ import { ExploreService } from './services/exploreService.js';
 import { PortfolioHighlightsService } from './services/portfolioHighlightsService.js';
 import { JourneyService } from './services/journeyService.js';
 import { AgentService } from './services/agentService.js';
+import { DigestService } from './services/digestService.js';
 import { createAgentRoutes } from './routes/agent.js';
+import { createDigestRoutes } from './routes/digest.js';
 import { getPool } from './infrastructure/db/pool.js';
 
 export function createApp(env: Env) {
@@ -43,6 +45,7 @@ export function createApp(env: Env) {
   const portfolioHighlights = new PortfolioHighlightsService(env, pool);
   const journey = new JourneyService(pool);
   const agent = new AgentService(env, pool);
+  const digest = new DigestService(env, pool);
   const authRoutes = createAuthRoutes(auth, env);
   const userRoutes = createUserRoutes(env);
   const adminRoutes = createAdminRoutes(pool);
@@ -56,6 +59,7 @@ export function createApp(env: Env) {
   const journeyRoutes = createJourneyRoutes(journey);
   const feedbackRoutes = createFeedbackRoutes(pool);
   const agentRoutes = createAgentRoutes(agent);
+  const digestRoutes = createDigestRoutes(digest);
 
   const app = express();
 
@@ -172,6 +176,22 @@ export function createApp(env: Env) {
   });
   app.post('/api/v1/agent/actions/:id/cancel', requireAuth, (req, res, next) => {
     agentRoutes.cancel(req, res).catch(next);
+  });
+
+  app.get('/api/v1/digest/weekly', requireAuth, (req, res, next) => {
+    digestRoutes.weekly(req, res).catch(next);
+  });
+  app.get('/api/v1/digest/preferences', requireAuth, (req, res, next) => {
+    digestRoutes.preferences(req, res).catch(next);
+  });
+  app.patch('/api/v1/digest/preferences', requireAuth, (req, res, next) => {
+    digestRoutes.updatePreferences(req, res).catch(next);
+  });
+  app.post('/api/v1/digest/email', requireAuth, (req, res, next) => {
+    digestRoutes.sendEmail(req, res).catch(next);
+  });
+  app.post('/api/v1/digest/cron/weekly', (req, res, next) => {
+    digestRoutes.cronWeekly(req, res).catch(next);
   });
 
   if (env.NODE_ENV === 'production') {

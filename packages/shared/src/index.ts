@@ -39,6 +39,14 @@ export type {
   ContributionHeatmap,
 } from './types/heatmap.js';
 export type {
+  DigestIssueItem,
+  WeeklyDigestGroup,
+  WeeklyDigest,
+  DigestPreferences,
+  DigestPreferencesUpdate,
+  DigestEmailSendResponse,
+} from './types/digest.js';
+export type {
   AgentContext,
   AgentContextType,
   AgentChatRequest,

@@ -16,3 +16,26 @@ services:
         sync: false
       - key: AGENT_MODEL
         sync: false
+      # Weekly digest email (Resend) — https://resend.com/api-keys
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DIGEST_FROM_EMAIL
+        value: "OSCT <onboarding@resend.dev>"
+      - key: CRON_SECRET
+        generateValue: true
+
+  # Mondays 14:00 UTC — emails users who enabled weekly digest
+  - type: cron
+    name: osct-weekly-digest
+    runtime: node
+    schedule: "0 14 * * 1"
+    buildCommand: npm install --include=dev
+    startCommand: npm run digest:cron --workspace=@osct/api
+    envVars:
+      - key: API_ORIGIN
+        sync: false
+      - key: CRON_SECRET
+        fromService:
+          name: osct
+          type: web
+          envVarKey: CRON_SECRET

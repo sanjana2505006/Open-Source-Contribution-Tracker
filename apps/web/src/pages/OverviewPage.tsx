@@ -13,6 +13,7 @@ import { StatCard, StatCardSkeleton } from '../components/StatCard';
 import { LinkedInShareFab } from '../components/LinkedInShareFab';
 import { PortfolioSharePrompt } from '../components/PortfolioSharePrompt';
 import { PullRequestIcon } from '../components/icons/PullRequestIcon';
+import { WeeklyDigestBanner } from '../components/WeeklyDigestBanner';
 import { SyncControls } from '../components/SyncControls';
 import { fetchRepositories, fetchStats, fetchStreak } from '../lib/api';
 
@@ -150,6 +151,7 @@ export function OverviewPage() {
       <>
       <main className="page-main">
         <PortfolioSharePrompt username={user.username} />
+        <WeeklyDigestBanner />
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {loading || authLoading ? (
