@@ -4,6 +4,7 @@ import type { DigestIssueItem, DigestPreferences, IssueItem, WeeklyDigest } from
 import { useAuth } from '../app/AuthProvider';
 import { AgentPanel } from '../components/agent/AgentPanel';
 import { DIGEST_DEFAULT_PREFS, DigestEmailPanel } from '../components/DigestEmailPanel';
+import { IssueTable } from '../components/IssueTable';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
@@ -28,63 +29,8 @@ const DIGEST_ISSUE_STARTERS = [
   'What GitHub comment would help unblock this?',
 ];
 
-function roleLabel(role: string): string {
-  switch (role) {
-    case 'assigned':
-      return 'Assigned';
-    case 'commented':
-      return 'Commented';
-    case 'authored':
-      return 'Opened';
-    default:
-      return role;
-  }
-}
-
-function DigestIssueRow({
-  issue,
-  onAskAgent,
-}: {
-  issue: DigestIssueItem;
-  onAskAgent?: (issue: DigestIssueItem) => void;
-}) {
-  const label =
-    issue.issueNumber != null
-      ? `${issue.repositoryFullName}#${issue.issueNumber}`
-      : issue.repositoryFullName;
-
-  return (
-    <li className="digest-issue">
-      <div className="digest-issue__row group">
-        <div className="digest-issue__main">
-          <a href={issue.htmlUrl} target="_blank" rel="noreferrer" className="digest-issue__title">
-            <span className="digest-issue__repo">{label}</span>
-            <span className="digest-issue__sep"> — </span>
-            {issue.title}
-          </a>
-          <p className="digest-issue__meta">
-            <span className="badge badge-stale">{issue.stuckDays}d stuck</span>
-            <span>{issue.stuckReason}</span>
-            {issue.roles.map((role) => (
-              <span key={role} className="badge badge-open">
-                {roleLabel(role)}
-              </span>
-            ))}
-          </p>
-        </div>
-        {onAskAgent && (
-          <button
-            type="button"
-            className="agent-issue-btn"
-            onClick={() => onAskAgent(issue)}
-            title="Ask OSCT agent about this stuck issue"
-          >
-            Ask agent
-          </button>
-        )}
-      </div>
-    </li>
-  );
+function toIssueItem(issue: DigestIssueItem): IssueItem {
+  return digestIssueToAgentItem(issue);
 }
 
 export function DigestPage() {
@@ -101,7 +47,7 @@ export function DigestPage() {
   const [agentIssue, setAgentIssue] = useState<IssueItem | null>(null);
 
   const openAgent = useCallback((issue?: DigestIssueItem) => {
-    setAgentIssue(issue ? digestIssueToAgentItem(issue) : null);
+    setAgentIssue(issue ? toIssueItem(issue) : null);
     setAgentOpen(true);
   }, []);
 
@@ -112,9 +58,7 @@ export function DigestPage() {
     setError(null);
 
     const digestPromise = fetchWeeklyDigest()
-      .then((digestData) => {
-        setDigest(digestData);
-      })
+      .then(setDigest)
       .catch((err) => {
         setDigest(null);
         setError(err instanceof Error ? err.message : 'Failed to load digest');
@@ -138,7 +82,6 @@ export function DigestPage() {
     setSaving(true);
     setMessage(null);
     setError(null);
-
     try {
       const next = await updateDigestPreferences({ emailEnabled: !prefs.emailEnabled });
       setPrefs(next);
@@ -154,12 +97,10 @@ export function DigestPage() {
     setSending(true);
     setMessage(null);
     setError(null);
-
     try {
       const result = await sendDigestEmail();
       setMessage(result.message);
-      const nextPrefs = await fetchDigestPreferences();
-      setPrefs(nextPrefs);
+      setPrefs(await fetchDigestPreferences());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send email');
     } finally {
@@ -182,106 +123,111 @@ export function DigestPage() {
       <PageHeader
         eyebrow="Weekly"
         title="Stuck-issue digest"
-        description="Open issues with no activity for 30+ days, grouped by why they might be stuck."
+        description="Issues with no activity for 30+ days — prioritized and grouped."
         actions={
           <>
             {digest && digest.stuckTotal > 0 && (
-              <button
-                type="button"
-                onClick={() => openAgent()}
-                className="btn btn-secondary"
-              >
+              <button type="button" onClick={() => openAgent()} className="btn btn-secondary">
                 Digest assistant
               </button>
             )}
             <Link to="/issues?role=stuck" className="btn btn-secondary">
-              Open stuck inbox
+              Stuck inbox
             </Link>
           </>
         }
       />
 
-      <main className="page-main">
+      <main className="page-main digest-page">
+        {digestLoading && (
+          <p className="text-sm text-[var(--color-muted)]">Loading digest…</p>
+        )}
 
-      {(digestLoading || prefsLoading) && (
-        <p className="mt-6 text-sm text-[var(--color-muted)]">Loading digest…</p>
-      )}
+        {error && <p className="alert alert-error">{error}</p>}
+        {message && <p className="alert alert-success">{message}</p>}
 
-      {error && (
-        <p className="mt-6 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-3 text-sm text-[var(--color-danger)]">
-          {error}
-        </p>
-      )}
-
-      {message && (
-        <p className="mt-6 rounded-lg border border-[var(--color-ok)]/30 bg-[var(--color-ok)]/10 px-4 py-3 text-sm text-[var(--color-ok)]">
-          {message}
-        </p>
-      )}
-
-      <DigestEmailPanel
-        prefs={prefs}
-        loading={prefsLoading}
-        saving={saving}
-        sending={sending}
-        isAdmin={user.isAdmin}
-        onToggleEmail={toggleEmail}
-        onSendNow={handleSendNow}
-      />
-
-      {digest && !digestLoading && (
-        <>
-          <section className="digest-summary animate-fade-up">
-            <p className="digest-summary__week">{digest.weekLabel}</p>
-            <p className="digest-summary__text">{digest.summary}</p>
-            <p className="digest-summary__meta">
-              Generated {new Date(digest.generatedAt).toLocaleString()}
-            </p>
+        {digest && !digestLoading && (
+          <section className="digest-hero animate-fade-up">
+            <div className="digest-hero__stat">
+              <span className="digest-hero__value">{digest.stuckTotal}</span>
+              <span className="digest-hero__label">stuck</span>
+            </div>
+            <div className="digest-hero__copy">
+              <p className="digest-hero__week">{digest.weekLabel}</p>
+              <p className="digest-hero__summary">{digest.summary}</p>
+            </div>
           </section>
+        )}
 
-          {digest.stuckTotal === 0 ? (
-            <Panel className="mt-6" title="All clear">
-              <p className="text-sm text-[var(--color-muted)]">
-                No stuck issues right now. Issues with 30+ days of inactivity will show up here after
-                sync.
-              </p>
-            </Panel>
-          ) : (
-            <>
-              {digest.topPriorities.length > 0 && (
-                <Panel
-                  className="mt-6"
-                  flush
-                  title="Top priorities"
-                  subtitle="Oldest stuck issues to tackle first"
-                >
-                  <ul className="digest-issue-list">
-                    {digest.topPriorities.map((issue) => (
-                      <DigestIssueRow key={issue.id} issue={issue} onAskAgent={openAgent} />
-                    ))}
-                  </ul>
-                </Panel>
-              )}
+        <DigestEmailPanel
+          prefs={prefs}
+          loading={prefsLoading}
+          saving={saving}
+          sending={sending}
+          isAdmin={user.isAdmin}
+          onToggleEmail={toggleEmail}
+          onSendNow={handleSendNow}
+        />
 
-              {digest.groups.map((group) => (
-                <Panel
-                  key={group.reason}
-                  className="mt-6"
-                  flush
-                  title={group.reason}
-                  subtitle={`${group.count} issue${group.count === 1 ? '' : 's'}`}
-                >
-                  <ul className="digest-issue-list">
-                    {group.issues.map((issue) => (
-                      <DigestIssueRow key={issue.id} issue={issue} onAskAgent={openAgent} />
+        {digest && !digestLoading && (
+          <>
+            {digest.stuckTotal === 0 ? (
+              <Panel className="mt-6" title="All clear">
+                <p className="text-sm text-[var(--color-muted)]">
+                  No stuck issues right now. They appear here after sync when open issues go 30+
+                  days without activity.
+                </p>
+              </Panel>
+            ) : (
+              <>
+                {digest.topPriorities.length > 0 && (
+                  <Panel
+                    className="mt-6"
+                    flush
+                    title="Top priorities"
+                    subtitle="Tackle these first"
+                  >
+                    <IssueTable
+                      issues={digest.topPriorities.map(toIssueItem)}
+                      variant="stuck"
+                      showRepository
+                      onAskAgent={(issue) => openAgent(digest.topPriorities.find((i) => i.id === issue.id))}
+                    />
+                  </Panel>
+                )}
+
+                {digest.groups.length > 0 && (
+                  <Panel
+                    className="mt-6"
+                    flush
+                    title="By reason"
+                    subtitle={`${digest.groups.length} group${digest.groups.length === 1 ? '' : 's'}`}
+                  >
+                    {digest.groups.map((group, index) => (
+                      <div key={group.reason} className="digest-group">
+                        <div className="digest-group__header">
+                          <h4 className="digest-group__title">{group.reason}</h4>
+                          <span className="digest-group__count">{group.count}</span>
+                        </div>
+                        <IssueTable
+                          issues={group.issues.map(toIssueItem)}
+                          variant="stuck"
+                          showRepository
+                          onAskAgent={(issue) =>
+                            openAgent(group.issues.find((i) => i.id === issue.id))
+                          }
+                        />
+                        {index < digest.groups.length - 1 && (
+                          <div className="digest-group__divider" />
+                        )}
+                      </div>
                     ))}
-                  </ul>
-                </Panel>
-              ))}
-            </>
-          )}
-        </>
-      )}
+                  </Panel>
+                )}
+              </>
+            )}
+          </>
+        )}
       </main>
 
       <AgentPanel
