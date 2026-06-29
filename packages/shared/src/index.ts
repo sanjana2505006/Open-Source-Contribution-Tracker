@@ -23,6 +23,13 @@ export type {
   PullRequestCounts,
 } from './types/contributions.js';
 export type {
+  PrAiCheckConfidence,
+  PrAiCheckRequest,
+  PrAiCheckResult,
+  PrAiCheckSection,
+  PrAiCheckSectionName,
+} from './types/prAiCheck.js';
+export type {
   IssueItem,
   IssueList,
   IssueRole,

@@ -36,6 +36,19 @@ export class UserRepositoryLinkRepository {
     return Number(result.rows[0]?.count ?? 0);
   }
 
+  async userHasRepo(userId: string, fullName: string): Promise<boolean> {
+    const result = await this.db.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM user_repositories ur
+         JOIN repositories r ON r.id = ur.repository_id
+         WHERE ur.user_id = $1 AND LOWER(r.full_name) = LOWER($2)
+       ) AS exists`,
+      [userId, fullName],
+    );
+    return Boolean(result.rows[0]?.exists);
+  }
+
   async listForUser(userId: string, limit = 100): Promise<RepositorySummary[]> {
     const result = await this.db.query<{
       id: string;

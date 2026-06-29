@@ -8,6 +8,7 @@ import type {
   RepositorySummary,
 } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
+import { AgentPanel } from '../components/agent/AgentPanel';
 import { IssueTable } from '../components/IssueTable';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
@@ -38,6 +39,13 @@ export function RepoPage() {
   const [loading, setLoading] = useState(true);
   const [loadingList, setLoadingList] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentPr, setAgentPr] = useState<PullRequestItem | null>(null);
+
+  const openAgent = useCallback((pr?: PullRequestItem) => {
+    setAgentPr(pr ?? null);
+    setAgentOpen(true);
+  }, []);
 
   const loadRepo = useCallback(async () => {
     if (!user || !fullName) return;
@@ -181,6 +189,9 @@ export function RepoPage() {
               {issueCounts.stuck} stuck issue{issueCounts.stuck === 1 ? '' : 's'}
             </Link>
           )}
+          <button type="button" className="btn btn-secondary text-sm" onClick={() => openAgent()}>
+            PR assistant
+          </button>
         </div>
       </PageHeader>
 
@@ -267,6 +278,7 @@ export function RepoPage() {
                 loading={loadingList}
                 showRepository={false}
                 emptyMessage="No pull requests in this repo for the selected filter."
+                onAskAgent={openAgent}
               />
             </Panel>
           </div>
@@ -290,6 +302,8 @@ export function RepoPage() {
           </Panel>
         )}
       </main>
+
+      <AgentPanel open={agentOpen} onClose={() => setAgentOpen(false)} pullRequest={agentPr} />
     </>
   );
 }

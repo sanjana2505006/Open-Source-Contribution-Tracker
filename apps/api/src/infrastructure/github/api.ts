@@ -278,6 +278,32 @@ export class GitHubApi {
     );
   }
 
+  async listPullRequestFiles(
+    owner: string,
+    repo: string,
+    number: number,
+    maxPages = 2,
+  ): Promise<GitHubPullRequestFile[]> {
+    return this.requestAllPages<GitHubPullRequestFile>(
+      (page) =>
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}/files?per_page=100&page=${page}`,
+      maxPages,
+    );
+  }
+
+  async listPullRequestCommits(
+    owner: string,
+    repo: string,
+    number: number,
+    maxPages = 2,
+  ): Promise<GitHubPullRequestCommit[]> {
+    return this.requestAllPages<GitHubPullRequestCommit>(
+      (page) =>
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}/commits?per_page=100&page=${page}`,
+      maxPages,
+    );
+  }
+
   async createIssueComment(
     owner: string,
     repo: string,
@@ -335,4 +361,20 @@ export type GitHubPullRequestDetail = {
   deletions: number;
   changed_files: number;
   commits: number;
+};
+
+export type GitHubPullRequestFile = {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  patch?: string;
+};
+
+export type GitHubPullRequestCommit = {
+  sha: string;
+  commit: {
+    message: string;
+    author: { name: string; date: string } | null;
+  };
 };

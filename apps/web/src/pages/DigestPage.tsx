@@ -8,6 +8,7 @@ import { IssueTable } from '../components/IssueTable';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
+import { buildPlanMyWeekPrompt } from '../lib/digestPlan';
 import { digestIssueToAgentItem } from '../lib/agentContext';
 import {
   fetchDigestPreferences,
@@ -45,11 +46,23 @@ export function DigestPage() {
   const [error, setError] = useState<string | null>(null);
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentIssue, setAgentIssue] = useState<IssueItem | null>(null);
+  const [agentInitialMessage, setAgentInitialMessage] = useState<string | null>(null);
+  const [agentMode, setAgentMode] = useState<'general' | 'issue' | 'plan'>('general');
 
   const openAgent = useCallback((issue?: DigestIssueItem) => {
+    setAgentMode(issue ? 'issue' : 'general');
+    setAgentInitialMessage(null);
     setAgentIssue(issue ? toIssueItem(issue) : null);
     setAgentOpen(true);
   }, []);
+
+  const planMyWeek = useCallback(() => {
+    if (!digest || digest.stuckTotal === 0) return;
+    setAgentMode('plan');
+    setAgentIssue(null);
+    setAgentInitialMessage(buildPlanMyWeekPrompt(digest));
+    setAgentOpen(true);
+  }, [digest]);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -127,9 +140,14 @@ export function DigestPage() {
         actions={
           <>
             {digest && digest.stuckTotal > 0 && (
-              <button type="button" onClick={() => openAgent()} className="btn btn-secondary">
-                Digest assistant
-              </button>
+              <>
+                <button type="button" onClick={planMyWeek} className="btn btn-primary">
+                  Plan my week
+                </button>
+                <button type="button" onClick={() => openAgent()} className="btn btn-secondary">
+                  Digest assistant
+                </button>
+              </>
             )}
             <Link to="/issues?role=stuck" className="btn btn-secondary">
               Stuck inbox
@@ -155,6 +173,11 @@ export function DigestPage() {
             <div className="digest-hero__copy">
               <p className="digest-hero__week">{digest.weekLabel}</p>
               <p className="digest-hero__summary">{digest.summary}</p>
+              {digest.stuckTotal > 0 && (
+                <button type="button" onClick={planMyWeek} className="digest-hero__plan btn btn-primary">
+                  Plan my week with AI
+                </button>
+              )}
             </div>
           </section>
         )}
@@ -234,12 +257,22 @@ export function DigestPage() {
         open={agentOpen}
         onClose={() => setAgentOpen(false)}
         issue={agentIssue}
+        initialMessage={agentInitialMessage}
+        onInitialMessageSent={() => setAgentInitialMessage(null)}
         starters={agentIssue ? DIGEST_ISSUE_STARTERS : DIGEST_GENERAL_STARTERS}
-        panelTitle={agentIssue ? 'Stuck issue assistant' : 'Digest assistant'}
+        panelTitle={
+          agentMode === 'plan'
+            ? 'Plan my week'
+            : agentIssue
+              ? 'Stuck issue assistant'
+              : 'Digest assistant'
+        }
         panelSubtitle={
-          agentIssue
-            ? 'Summarize the thread, get next steps, and post an approved follow-up to GitHub.'
-            : 'Plan your week, prioritize stuck work, and draft follow-ups for GitHub.'
+          agentMode === 'plan'
+            ? 'A prioritized checklist from your stuck-issue digest — then draft follow-ups per issue.'
+            : agentIssue
+              ? 'Summarize the thread, get next steps, and post an approved follow-up to GitHub.'
+              : 'Plan your week, prioritize stuck work, and draft follow-ups for GitHub.'
         }
       />
     </>

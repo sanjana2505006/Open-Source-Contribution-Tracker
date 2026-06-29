@@ -820,6 +820,10 @@ button:disabled {
   color: var(--color-text);
 }
 
+.digest-hero__plan {
+  margin-top: 0.85rem;
+}
+
 .digest-email-bar {
   padding: 0.85rem 1rem;
   border-radius: 12px;
@@ -1436,6 +1440,11 @@ button:disabled {
 .badge-stale {
   background: color-mix(in srgb, var(--color-warn) 15%, transparent);
   color: var(--color-warn);
+}
+
+.badge-ai {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
 }
 
 /* —— Lists —— */
@@ -3384,6 +3393,17 @@ html.custom-cursor-mode *::after {
   border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
 }
 
+.agent-panel__starter--primary {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-panel));
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.agent-panel__starter--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-panel));
+}
+
 .agent-panel__actions {
   display: flex;
   flex-direction: column;
@@ -3519,6 +3539,180 @@ html.custom-cursor-mode *::after {
   color: var(--color-accent);
   font-size: 0.6875rem;
   font-weight: 600;
+}
+
+.agent-ai-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-panel));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 18%, var(--color-border));
+}
+
+.agent-ai-context__text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+/* PR AI check */
+.pr-ai-check-form {
+  margin-bottom: 1rem;
+}
+
+.pr-ai-check-form__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.pr-ai-check-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pr-ai-check-form__row .input {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.pr-ai-result {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pr-ai-result__hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.pr-ai-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.pr-ai-level__percent {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pr-ai-level__label {
+  margin-top: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pr-ai-level--high {
+  background: color-mix(in srgb, #e5534b 12%, var(--color-panel));
+  color: #e5534b;
+  border-color: color-mix(in srgb, #e5534b 25%, var(--color-border));
+}
+
+.pr-ai-level--medium {
+  background: color-mix(in srgb, var(--color-warn) 12%, var(--color-panel));
+  color: var(--color-warn);
+  border-color: color-mix(in srgb, var(--color-warn) 25%, var(--color-border));
+}
+
+.pr-ai-level--low {
+  background: color-mix(in srgb, #3fb950 12%, var(--color-panel));
+  color: #3fb950;
+  border-color: color-mix(in srgb, #3fb950 25%, var(--color-border));
+}
+
+.pr-ai-result__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.pr-ai-result__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.pr-ai-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.pr-ai-section__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pr-ai-section__bar {
+  height: 6px;
+  margin: 0.35rem 0;
+  border-radius: 999px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.pr-ai-section__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.pr-ai-section__why {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.pr-ai-signals {
+  margin-top: 1rem;
+}
+
+.pr-ai-signals__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.pr-ai-signals ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text);
+}
+
+.pr-ai-disclaimer {
+  margin: 1rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--color-muted);
 }
 
 .agent-message {

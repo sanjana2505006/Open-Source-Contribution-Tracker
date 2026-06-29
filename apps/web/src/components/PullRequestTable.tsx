@@ -18,6 +18,7 @@ type Props = {
   loading?: boolean;
   showRepository?: boolean;
   emptyMessage?: string;
+  onAskAgent?: (pr: PullRequestItem) => void;
 };
 
 export function PullRequestTable({
@@ -25,6 +26,7 @@ export function PullRequestTable({
   loading,
   showRepository = false,
   emptyMessage = 'No pull requests found. Try syncing again if you expect some here.',
+  onAskAgent,
 }: Props) {
   if (loading) {
     return (
@@ -70,6 +72,16 @@ export function PullRequestTable({
                 {pr.title}
               </a>
               {stale && <StatusBadge status="stale" label={`${openDays}d open`} />}
+              {onAskAgent && (
+                <button
+                  type="button"
+                  className="agent-issue-btn"
+                  onClick={() => onAskAgent(pr)}
+                  title="Open PR assistant"
+                >
+                  Ask agent
+                </button>
+              )}
               <time
                 dateTime={pr.occurredAt}
                 className="tabular-nums shrink-0 text-[11px] font-medium text-[var(--color-muted)]"

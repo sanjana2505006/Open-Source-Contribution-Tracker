@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { PullRequestCounts, PullRequestItem, PullRequestStatusFilter, RepositorySummary } from '@osct/shared';
 import { useAuth } from '../app/AuthProvider';
+import { AgentPanel } from '../components/agent/AgentPanel';
 import { LoggedOutLanding } from '../components/LoggedOutLanding';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
@@ -37,6 +38,8 @@ export function RepositoriesPage() {
   const [filter, setFilter] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingPrs, setLoadingPrs] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentPr, setAgentPr] = useState<PullRequestItem | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +115,11 @@ export function RepositoriesPage() {
     updateParams({ status: next });
   }
 
+  const openAgent = useCallback((pr?: PullRequestItem) => {
+    setAgentPr(pr ?? null);
+    setAgentOpen(true);
+  }, []);
+
   if (!user) {
     return (
       <LoggedOutLanding
@@ -142,6 +150,15 @@ export function RepositoriesPage() {
           inboxMode
             ? 'All your PRs in one place — filter by status or drill into a repo.'
             : `Every PR you've raised in ${selectedRepo}.`
+        }
+        actions={
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => openAgent()}
+          >
+            PR assistant
+          </button>
         }
       />
 
@@ -200,10 +217,13 @@ export function RepositoriesPage() {
               loading={loadingPrs}
               showRepository={inboxMode}
               emptyMessage={emptyMessage}
+              onAskAgent={openAgent}
             />
           </Panel>
         </div>
       </main>
+
+      <AgentPanel open={agentOpen} onClose={() => setAgentOpen(false)} pullRequest={agentPr} />
     </>
   );
 }

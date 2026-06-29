@@ -18,6 +18,14 @@ export type AgentMessageRow = {
   created_at: Date;
 };
 
+export type AgentActionGitHubResponse = {
+  html_url: string;
+  id: number;
+  aiBodyChars?: number;
+  postedBodyChars?: number;
+  userEdited?: boolean;
+};
+
 export type AgentActionRow = {
   id: string;
   session_id: string;
@@ -25,7 +33,7 @@ export type AgentActionRow = {
   action_type: 'comment_on_issue';
   payload: AgentActionPayload;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  github_response: { html_url?: string; id?: number } | null;
+  github_response: AgentActionGitHubResponse | null;
   error_message: string | null;
   created_at: Date;
   executed_at: Date | null;
@@ -134,7 +142,7 @@ export class AgentRepository {
 
   async markActionCompleted(
     actionId: string,
-    githubResponse: { html_url: string; id: number },
+    githubResponse: AgentActionGitHubResponse,
   ): Promise<void> {
     await this.db.query(
       `UPDATE agent_actions

@@ -54,7 +54,7 @@ export function createApp(env: Env) {
   const analyticsRoutes = createAnalyticsRoutes(analytics, heatmap);
   const exploreRoutes = createExploreRoutes(explore);
   const publicRoutes = createPublicRoutes(explore, portfolioHighlights);
-  const pullRequestRoutes = createPullRequestRoutes(pool);
+  const pullRequestRoutes = createPullRequestRoutes(pool, env);
   const issueRoutes = createIssueRoutes(pool);
   const journeyRoutes = createJourneyRoutes(journey);
   const feedbackRoutes = createFeedbackRoutes(pool);
@@ -151,6 +151,12 @@ export function createApp(env: Env) {
 
   app.get('/api/v1/pull-requests', requireAuth, (req, res, next) => {
     pullRequestRoutes.list(req, res).catch(next);
+  });
+  app.get('/api/v1/pull-requests/ai-check/status', requireAuth, (req, res, next) => {
+    pullRequestRoutes.aiCheckStatus(req, res).catch(next);
+  });
+  app.post('/api/v1/pull-requests/ai-check', requireAuth, (req, res, next) => {
+    pullRequestRoutes.aiCheck(req, res).catch(next);
   });
   app.get('/api/v1/issues', requireAuth, (req, res, next) => {
     issueRoutes.list(req, res).catch(next);

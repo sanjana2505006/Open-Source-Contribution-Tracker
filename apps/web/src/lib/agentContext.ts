@@ -1,4 +1,4 @@
-import type { DigestIssueItem, IssueItem } from '@osct/shared';
+import type { DigestIssueItem, IssueItem, PullRequestItem } from '@osct/shared';
 
 export function parseIssueFromAgentItem(issue: IssueItem): {
   owner: string;
@@ -6,6 +6,20 @@ export function parseIssueFromAgentItem(issue: IssueItem): {
   number: number;
 } | null {
   const match = issue.htmlUrl.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/i);
+  if (!match) return null;
+  return {
+    owner: match[1]!,
+    repo: match[2]!,
+    number: Number(match[3]),
+  };
+}
+
+export function parsePullRequestFromItem(pr: PullRequestItem): {
+  owner: string;
+  repo: string;
+  number: number;
+} | null {
+  const match = pr.htmlUrl.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/i);
   if (!match) return null;
   return {
     owner: match[1]!,

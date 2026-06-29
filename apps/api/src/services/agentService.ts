@@ -281,9 +281,16 @@ export class AgentService {
         payload.body,
       );
 
+      const aiBodyChars = action.payload.body.length;
+      const postedBodyChars = payload.body.length;
+      const userEdited = postedBodyChars !== aiBodyChars;
+
       await this.agents.markActionCompleted(actionId, {
         html_url: comment.html_url,
         id: comment.id,
+        aiBodyChars,
+        postedBodyChars,
+        userEdited,
       });
 
       return {

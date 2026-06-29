@@ -1,10 +1,20 @@
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import type pg from 'pg';
 import type { PullRequestList, PullRequestStatusFilter } from '@osct/shared';
+import type { Env } from '../config/env.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { ContributionRepository } from '../repositories/contributionRepository.js';
+import { PrAiDetectionService } from '../services/prAiDetectionService.js';
 
 const STATUS_FILTERS = new Set<PullRequestStatusFilter>(['all', 'open', 'merged', 'closed']);
+
+const aiCheckBodySchema = z.object({
+  url: z.string().trim().min(1).optional(),
+  owner: z.string().trim().min(1).optional(),
+  repo: z.string().trim().min(1).optional(),
+  number: z.coerce.number().int().positive().optional(),
+});
 
 function parseStatus(value: unknown): PullRequestStatusFilter {
   if (typeof value === 'string' && STATUS_FILTERS.has(value as PullRequestStatusFilter)) {
@@ -21,8 +31,9 @@ function parseSort(
   return status === 'open' ? 'oldest' : 'newest';
 }
 
-export function createPullRequestRoutes(db: pg.Pool) {
+export function createPullRequestRoutes(db: pg.Pool, env: Env) {
   const contributions = new ContributionRepository(db);
+  const prAi = new PrAiDetectionService(env, db);
 
   return {
     async list(req: Request, res: Response): Promise<void> {
@@ -65,6 +76,22 @@ export function createPullRequestRoutes(db: pg.Pool) {
       };
 
       res.json({ data, meta: { total } });
+    },
+
+    async aiCheck(req: Request, res: Response): Promise<void> {
+      if (!req.user) throw new AppError(401, 'Sign in required', 'UNAUTHORIZED');
+
+      const parsed = aiCheckBodySchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        throw new AppError(400, parsed.error.issues[0]?.message ?? 'Invalid request', 'VALIDATION_ERROR');
+      }
+
+      const data = await prAi.analyze(req.user.id, parsed.data);
+      res.json({ data });
+    },
+
+    async aiCheckStatus(_req: Request, res: Response): Promise<void> {
+      res.json({ data: { enabled: prAi.isEnabled() } });
     },
   };
 }

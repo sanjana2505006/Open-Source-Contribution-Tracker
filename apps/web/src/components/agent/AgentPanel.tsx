@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import type { AgentContext, AgentMessageRecord, AgentProposedAction, AgentSource, IssueItem } from '@osct/shared';
-import { parseIssueFromAgentItem } from '../../lib/agentContext';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  AgentContext,
+  AgentMessageRecord,
+  AgentProposedAction,
+  AgentSource,
+  IssueItem,
+  PrAiCheckResult,
+  PullRequestItem,
+} from '@osct/shared';
+import { parseIssueFromAgentItem, parsePullRequestFromItem } from '../../lib/agentContext';
 import {
   approveAgentAction,
   cancelAgentAction,
@@ -9,7 +17,9 @@ import {
   proposeAgentAction,
   sendAgentChat,
 } from '../../lib/agentApi';
+import { checkPullRequestAi } from '../../lib/prAiApi';
 import { PUBLIC_SITE_ORIGIN } from '../../lib/portfolio';
+import { PrAiCheckResultView } from '../PrAiCheckResultView';
 import { AgentActionCard } from './AgentActionCard';
 import { AgentContextChip } from './AgentContextChip';
 import { AgentMessage } from './AgentMessage';
@@ -18,9 +28,16 @@ type Props = {
   open: boolean;
   onClose: () => void;
   issue?: IssueItem | null;
+  pullRequest?: PullRequestItem | null;
   starters?: string[];
   panelTitle?: string;
   panelSubtitle?: string;
+  /** Auto-send when the panel opens and the agent is ready */
+  initialMessage?: string | null;
+  onInitialMessageSent?: () => void;
+  /** Run PR AI check as soon as the panel opens (PR context required) */
+  initialPrAiCheck?: boolean;
+  onInitialPrAiCheckDone?: () => void;
 };
 
 const DEFAULT_STARTERS = [
@@ -30,14 +47,34 @@ const DEFAULT_STARTERS = [
   'Why might this issue be stuck?',
 ];
 
+const PR_STARTERS = [
+  'Summarize what this PR changes.',
+  'What would a maintainer look for in review?',
+  'How can I make this PR sound more thoughtful and less generic?',
+];
+
 export function AgentPanel({
   open,
   onClose,
   issue,
-  starters = DEFAULT_STARTERS,
-  panelTitle = 'Issue assistant',
-  panelSubtitle = 'Triage stuck issues, summarize threads, and post approved comments to GitHub.',
+  pullRequest,
+  starters,
+  panelTitle,
+  panelSubtitle,
+  initialMessage = null,
+  onInitialMessageSent,
+  initialPrAiCheck = false,
+  onInitialPrAiCheckDone,
 }: Props) {
+  const isPrMode = Boolean(pullRequest);
+  const resolvedStarters = starters ?? (isPrMode ? PR_STARTERS : DEFAULT_STARTERS);
+  const resolvedTitle = panelTitle ?? (isPrMode ? 'PR assistant' : 'Issue assistant');
+  const resolvedSubtitle =
+    panelSubtitle ??
+    (isPrMode
+      ? 'Review pull requests, check if they read AI-generated, and get feedback before maintainers do.'
+      : 'Triage stuck issues, summarize threads, and post approved comments to GitHub.');
+
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [providerInfo, setProviderInfo] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -49,21 +86,35 @@ export function AgentPanel({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prAiLoading, setPrAiLoading] = useState(false);
+  const [prAiError, setPrAiError] = useState<string | null>(null);
+  const [prAiResult, setPrAiResult] = useState<PrAiCheckResult | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const initialMessageSentRef = useRef(false);
+  const initialPrAiCheckRef = useRef(false);
 
-  const context: AgentContext = issue
+  const context: AgentContext = pullRequest
     ? (() => {
-        const parsed = parseIssueFromAgentItem(issue);
+        const parsed = parsePullRequestFromItem(pullRequest);
         return parsed
-          ? { type: 'issue', owner: parsed.owner, repo: parsed.repo, number: parsed.number }
+          ? { type: 'pull_request', owner: parsed.owner, repo: parsed.repo, number: parsed.number }
           : { type: 'general' };
       })()
-    : { type: 'general' };
+    : issue
+      ? (() => {
+          const parsed = parseIssueFromAgentItem(issue);
+          return parsed
+            ? { type: 'issue', owner: parsed.owner, repo: parsed.repo, number: parsed.number }
+            : { type: 'general' };
+        })()
+      : { type: 'general' };
 
-  const contextLabel = issue
-    ? `${issue.repositoryFullName} — ${issue.title}`
-    : undefined;
+  const contextLabel = pullRequest
+    ? `${pullRequest.repositoryFullName} — ${pullRequest.title}`
+    : issue
+      ? `${issue.repositoryFullName} — ${issue.title}`
+      : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -97,49 +148,104 @@ export function AgentPanel({
       setSources([]);
       setInput('');
       setError(null);
+      setPrAiLoading(false);
+      setPrAiError(null);
+      setPrAiResult(null);
+      initialMessageSentRef.current = false;
+      initialPrAiCheckRef.current = false;
     }
-  }, [open, issue?.id]);
+  }, [open, issue?.id, pullRequest?.id]);
+
+  const runPrAiCheck = useCallback(async () => {
+    if (!pullRequest) return;
+
+    const parsed = parsePullRequestFromItem(pullRequest);
+    if (!parsed) {
+      setPrAiError('Could not parse this pull request URL.');
+      return;
+    }
+
+    setPrAiLoading(true);
+    setPrAiError(null);
+    setPrAiResult(null);
+
+    try {
+      const data = await checkPullRequestAi({
+        owner: parsed.owner,
+        repo: parsed.repo,
+        number: parsed.number,
+      });
+      setPrAiResult(data);
+    } catch (err) {
+      setPrAiError(err instanceof Error ? err.message : 'PR analysis failed');
+    } finally {
+      setPrAiLoading(false);
+    }
+  }, [pullRequest]);
+
+  useEffect(() => {
+    if (!open || !initialPrAiCheck || !pullRequest || initialPrAiCheckRef.current) return;
+    initialPrAiCheckRef.current = true;
+    void runPrAiCheck().finally(() => {
+      onInitialPrAiCheckDone?.();
+    });
+  }, [open, initialPrAiCheck, pullRequest, runPrAiCheck, onInitialPrAiCheckDone]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
-  async function handleSend(message: string) {
-    const trimmed = message.trim();
-    if (!trimmed || sending) return;
+  const handleSend = useCallback(
+    async (message: string) => {
+      const trimmed = message.trim();
+      if (!trimmed || sending) return;
 
-    setSending(true);
-    setError(null);
+      setSending(true);
+      setError(null);
 
-    const optimisticUser: AgentMessageRecord = {
-      id: `local-${Date.now()}`,
-      role: 'user',
-      content: trimmed,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticUser]);
-    setInput('');
+      const optimisticUser: AgentMessageRecord = {
+        id: `local-${Date.now()}`,
+        role: 'user',
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimisticUser]);
+      setInput('');
 
-    try {
-      const response = await sendAgentChat({
-        message: trimmed,
-        sessionId: sessionId ?? undefined,
-        context,
-      });
-      setSessionId(response.sessionId);
-      setSources(response.sources);
+      try {
+        const response = await sendAgentChat({
+          message: trimmed,
+          sessionId: sessionId ?? undefined,
+          context,
+        });
+        setSessionId(response.sessionId);
+        setSources(response.sources);
 
-      const detail = await fetchAgentSession(response.sessionId);
-      setMessages(detail.messages);
-      setActions(detail.actions);
-    } catch (err: unknown) {
-      setMessages((prev) => prev.filter((row) => row.id !== optimisticUser.id));
-      setInput(trimmed);
-      setError(err instanceof Error ? err.message : 'Agent request failed');
-    } finally {
-      setSending(false);
+        const detail = await fetchAgentSession(response.sessionId);
+        setMessages(detail.messages);
+        setActions(detail.actions);
+      } catch (err: unknown) {
+        setMessages((prev) => prev.filter((row) => row.id !== optimisticUser.id));
+        setInput(trimmed);
+        setError(err instanceof Error ? err.message : 'Agent request failed');
+      } finally {
+        setSending(false);
+      }
+    },
+    [context, sending, sessionId],
+  );
+
+  useEffect(() => {
+    if (!open || !initialMessage || enabled !== true || sending || initialMessageSentRef.current) {
+      return;
     }
-  }
+    if (messages.length > 0) return;
+
+    initialMessageSentRef.current = true;
+    void handleSend(initialMessage).finally(() => {
+      onInitialMessageSent?.();
+    });
+  }, [open, initialMessage, enabled, sending, messages.length, handleSend, onInitialMessageSent]);
 
   async function refreshSession(id: string) {
     const detail = await fetchAgentSession(id);
@@ -194,9 +300,9 @@ export function AgentPanel({
           <div>
             <p className="agent-panel__eyebrow">AI · review before posting</p>
             <h2 id="agent-panel-title" className="agent-panel__title">
-              {panelTitle}
+              {resolvedTitle}
             </h2>
-            <p className="agent-panel__subtitle">{panelSubtitle}</p>
+            <p className="agent-panel__subtitle">{resolvedSubtitle}</p>
             <AgentContextChip context={context} label={contextLabel} />
           </div>
           <button type="button" className="agent-panel__close" onClick={onClose} aria-label="Close">
@@ -257,17 +363,27 @@ export function AgentPanel({
             <p className="agent-panel__provider">Connected via {providerInfo}</p>
           )}
 
-          {messages.length === 0 && enabled === true && (
+          {messages.length === 0 && enabled === true && !prAiResult && (
             <div className="agent-panel__starters">
               <p className="agent-panel__starters-label">Try asking:</p>
               <div className="agent-panel__starter-list">
-                {starters.map((starter) => (
+                {pullRequest && (
+                  <button
+                    type="button"
+                    className="agent-panel__starter agent-panel__starter--primary"
+                    onClick={() => void runPrAiCheck()}
+                    disabled={prAiLoading || sending}
+                  >
+                    {prAiLoading ? 'Checking the PR…' : 'Check the PR'}
+                  </button>
+                )}
+                {resolvedStarters.map((starter) => (
                   <button
                     key={starter}
                     type="button"
                     className="agent-panel__starter"
                     onClick={() => handleSend(starter)}
-                    disabled={sending}
+                    disabled={sending || prAiLoading}
                   >
                     {starter}
                   </button>
@@ -275,6 +391,10 @@ export function AgentPanel({
               </div>
             </div>
           )}
+
+          {prAiLoading && <p className="agent-panel__typing">Analyzing pull request…</p>}
+          {prAiError && <p className="alert alert-error agent-panel__error">{prAiError}</p>}
+          {prAiResult && <PrAiCheckResultView result={prAiResult} />}
 
           {messages.map((message) => (
             <AgentMessage
@@ -342,9 +462,11 @@ export function AgentPanel({
             className="agent-panel__input"
             rows={3}
             placeholder={
-              issue
-                ? 'Ask about this stuck issue…'
-                : 'Ask about your stuck issues or weekly plan…'
+              pullRequest
+                ? 'Ask about this pull request…'
+                : issue
+                  ? 'Ask about this stuck issue…'
+                  : 'Ask about your stuck issues or weekly plan…'
             }
             value={input}
             onChange={(event) => setInput(event.target.value)}
