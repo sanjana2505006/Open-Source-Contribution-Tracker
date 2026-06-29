@@ -4,6 +4,7 @@ import type {
   AgentMessageRecord,
   AgentProposedAction,
   AgentSource,
+  IssueAiCheckResult,
   IssueItem,
   PrAiCheckResult,
   PullRequestItem,
@@ -17,9 +18,10 @@ import {
   proposeAgentAction,
   sendAgentChat,
 } from '../../lib/agentApi';
+import { checkIssueAi } from '../../lib/issueAiApi';
 import { checkPullRequestAi } from '../../lib/prAiApi';
 import { PUBLIC_SITE_ORIGIN } from '../../lib/portfolio';
-import { PrAiCheckResultView } from '../PrAiCheckResultView';
+import { AiCheckResultView } from '../AiCheckResultView';
 import { AgentActionCard } from './AgentActionCard';
 import { AgentContextChip } from './AgentContextChip';
 import { AgentMessage } from './AgentMessage';
@@ -35,8 +37,12 @@ type Props = {
   /** Auto-send when the panel opens and the agent is ready */
   initialMessage?: string | null;
   onInitialMessageSent?: () => void;
-  /** Run PR AI check as soon as the panel opens (PR context required) */
+  /** Run AI check as soon as the panel opens (issue or PR context required) */
+  initialAiCheck?: boolean;
+  onInitialAiCheckDone?: () => void;
+  /** @deprecated Use initialAiCheck */
   initialPrAiCheck?: boolean;
+  /** @deprecated Use onInitialAiCheckDone */
   onInitialPrAiCheckDone?: () => void;
 };
 
@@ -63,17 +69,23 @@ export function AgentPanel({
   panelSubtitle,
   initialMessage = null,
   onInitialMessageSent,
+  initialAiCheck = false,
+  onInitialAiCheckDone,
   initialPrAiCheck = false,
   onInitialPrAiCheckDone,
 }: Props) {
+  const runInitialAiCheck = initialAiCheck || initialPrAiCheck;
+  const onRunInitialAiCheckDone = onInitialAiCheckDone ?? onInitialPrAiCheckDone;
   const isPrMode = Boolean(pullRequest);
+  const isIssueMode = Boolean(issue);
+  const canAiCheck = isPrMode || isIssueMode;
   const resolvedStarters = starters ?? (isPrMode ? PR_STARTERS : DEFAULT_STARTERS);
   const resolvedTitle = panelTitle ?? (isPrMode ? 'PR assistant' : 'Issue assistant');
   const resolvedSubtitle =
     panelSubtitle ??
     (isPrMode
       ? 'Review pull requests, check if they read AI-generated, and get feedback before maintainers do.'
-      : 'Triage stuck issues, summarize threads, and post approved comments to GitHub.');
+      : 'Triage stuck issues, check if they read AI-generated, and post approved comments to GitHub.');
 
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [providerInfo, setProviderInfo] = useState<string | null>(null);
@@ -86,13 +98,19 @@ export function AgentPanel({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [prAiLoading, setPrAiLoading] = useState(false);
-  const [prAiError, setPrAiError] = useState<string | null>(null);
-  const [prAiResult, setPrAiResult] = useState<PrAiCheckResult | null>(null);
+  const [aiCheckLoading, setAiCheckLoading] = useState(false);
+  const [aiCheckError, setAiCheckError] = useState<string | null>(null);
+  const [aiCheckResult, setAiCheckResult] = useState<PrAiCheckResult | IssueAiCheckResult | null>(
+    null,
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const initialMessageSentRef = useRef(false);
-  const initialPrAiCheckRef = useRef(false);
+  const initialAiCheckRef = useRef(false);
+
+  const aiCheckLabel = isPrMode ? 'Check the PR' : 'Check the issue';
+  const aiCheckLoadingLabel = isPrMode ? 'Checking the PR…' : 'Checking the issue…';
+  const aiCheckAnalyzingLabel = isPrMode ? 'Analyzing pull request…' : 'Analyzing issue…';
 
   const context: AgentContext = pullRequest
     ? (() => {
@@ -148,48 +166,74 @@ export function AgentPanel({
       setSources([]);
       setInput('');
       setError(null);
-      setPrAiLoading(false);
-      setPrAiError(null);
-      setPrAiResult(null);
+      setAiCheckLoading(false);
+      setAiCheckError(null);
+      setAiCheckResult(null);
       initialMessageSentRef.current = false;
-      initialPrAiCheckRef.current = false;
+      initialAiCheckRef.current = false;
     }
   }, [open, issue?.id, pullRequest?.id]);
 
-  const runPrAiCheck = useCallback(async () => {
-    if (!pullRequest) return;
+  const runAiCheck = useCallback(async () => {
+    if (pullRequest) {
+      const parsed = parsePullRequestFromItem(pullRequest);
+      if (!parsed) {
+        setAiCheckError('Could not parse this pull request URL.');
+        return;
+      }
 
-    const parsed = parsePullRequestFromItem(pullRequest);
-    if (!parsed) {
-      setPrAiError('Could not parse this pull request URL.');
+      setAiCheckLoading(true);
+      setAiCheckError(null);
+      setAiCheckResult(null);
+
+      try {
+        const data = await checkPullRequestAi({
+          owner: parsed.owner,
+          repo: parsed.repo,
+          number: parsed.number,
+        });
+        setAiCheckResult(data);
+      } catch (err) {
+        setAiCheckError(err instanceof Error ? err.message : 'PR analysis failed');
+      } finally {
+        setAiCheckLoading(false);
+      }
       return;
     }
 
-    setPrAiLoading(true);
-    setPrAiError(null);
-    setPrAiResult(null);
+    if (!issue) return;
+
+    const parsed = parseIssueFromAgentItem(issue);
+    if (!parsed) {
+      setAiCheckError('Could not parse this issue URL.');
+      return;
+    }
+
+    setAiCheckLoading(true);
+    setAiCheckError(null);
+    setAiCheckResult(null);
 
     try {
-      const data = await checkPullRequestAi({
+      const data = await checkIssueAi({
         owner: parsed.owner,
         repo: parsed.repo,
         number: parsed.number,
       });
-      setPrAiResult(data);
+      setAiCheckResult(data);
     } catch (err) {
-      setPrAiError(err instanceof Error ? err.message : 'PR analysis failed');
+      setAiCheckError(err instanceof Error ? err.message : 'Issue analysis failed');
     } finally {
-      setPrAiLoading(false);
+      setAiCheckLoading(false);
     }
-  }, [pullRequest]);
+  }, [issue, pullRequest]);
 
   useEffect(() => {
-    if (!open || !initialPrAiCheck || !pullRequest || initialPrAiCheckRef.current) return;
-    initialPrAiCheckRef.current = true;
-    void runPrAiCheck().finally(() => {
-      onInitialPrAiCheckDone?.();
+    if (!open || !runInitialAiCheck || !canAiCheck || initialAiCheckRef.current) return;
+    initialAiCheckRef.current = true;
+    void runAiCheck().finally(() => {
+      onRunInitialAiCheckDone?.();
     });
-  }, [open, initialPrAiCheck, pullRequest, runPrAiCheck, onInitialPrAiCheckDone]);
+  }, [open, runInitialAiCheck, canAiCheck, runAiCheck, onRunInitialAiCheckDone]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -363,18 +407,18 @@ export function AgentPanel({
             <p className="agent-panel__provider">Connected via {providerInfo}</p>
           )}
 
-          {messages.length === 0 && enabled === true && !prAiResult && (
+          {messages.length === 0 && enabled === true && !aiCheckResult && (
             <div className="agent-panel__starters">
               <p className="agent-panel__starters-label">Try asking:</p>
               <div className="agent-panel__starter-list">
-                {pullRequest && (
+                {canAiCheck && (
                   <button
                     type="button"
                     className="agent-panel__starter agent-panel__starter--primary"
-                    onClick={() => void runPrAiCheck()}
-                    disabled={prAiLoading || sending}
+                    onClick={() => void runAiCheck()}
+                    disabled={aiCheckLoading || sending}
                   >
-                    {prAiLoading ? 'Checking the PR…' : 'Check the PR'}
+                    {aiCheckLoading ? aiCheckLoadingLabel : aiCheckLabel}
                   </button>
                 )}
                 {resolvedStarters.map((starter) => (
@@ -383,7 +427,7 @@ export function AgentPanel({
                     type="button"
                     className="agent-panel__starter"
                     onClick={() => handleSend(starter)}
-                    disabled={sending || prAiLoading}
+                    disabled={sending || aiCheckLoading}
                   >
                     {starter}
                   </button>
@@ -392,9 +436,9 @@ export function AgentPanel({
             </div>
           )}
 
-          {prAiLoading && <p className="agent-panel__typing">Analyzing pull request…</p>}
-          {prAiError && <p className="alert alert-error agent-panel__error">{prAiError}</p>}
-          {prAiResult && <PrAiCheckResultView result={prAiResult} />}
+          {aiCheckLoading && <p className="agent-panel__typing">{aiCheckAnalyzingLabel}</p>}
+          {aiCheckError && <p className="alert alert-error agent-panel__error">{aiCheckError}</p>}
+          {aiCheckResult && <AiCheckResultView result={aiCheckResult} />}
 
           {messages.map((message) => (
             <AgentMessage

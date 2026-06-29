@@ -1,9 +1,13 @@
-import type { PrAiCheckResult } from '@osct/shared';
+import type { IssueAiCheckResult, PrAiCheckResult } from '@osct/shared';
+
+export type AiCheckResult = PrAiCheckResult | IssueAiCheckResult;
 
 const SECTION_LABELS: Record<string, string> = {
-  description: 'PR description',
+  description: 'Description',
   code: 'Code changes',
   commits: 'Commit messages',
+  comments: 'Comments',
+  title: 'Title',
 };
 
 function aiLevel(percent: number): string {
@@ -19,10 +23,10 @@ function aiLevelClass(percent: number): string {
 }
 
 type Props = {
-  result: PrAiCheckResult;
+  result: AiCheckResult;
 };
 
-export function PrAiCheckResultView({ result }: Props) {
+export function AiCheckResultView({ result }: Props) {
   return (
     <div className="pr-ai-result">
       <div className="pr-ai-result__hero">

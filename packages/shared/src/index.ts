@@ -30,6 +30,13 @@ export type {
   PrAiCheckSectionName,
 } from './types/prAiCheck.js';
 export type {
+  IssueAiCheckConfidence,
+  IssueAiCheckRequest,
+  IssueAiCheckResult,
+  IssueAiCheckSection,
+  IssueAiCheckSectionName,
+} from './types/issueAiCheck.js';
+export type {
   IssueItem,
   IssueList,
   IssueRole,
