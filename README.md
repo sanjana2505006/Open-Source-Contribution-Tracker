@@ -22,6 +22,57 @@ Sign in with GitHub, hit sync once, and you get:
 
 There's dark mode too, because obviously.
 
+## Feature workflows
+
+Visual flow for every major feature — same style as the RepoSage journey diagram. Full diagrams (with per-feature breakdowns) live in **[docs/workflows.md](docs/workflows.md)**.
+
+### Master journey: issue → first PR
+
+```mermaid
+flowchart TD
+    A["Sign in with GitHub"] --> B["OSCT scans profile"]
+    B --> C["Analyzes languages & contribution history"]
+    C --> D["Personalized good-first-issue feed<br/><i>Discover</i>"]
+
+    D --> E{Select an issue}
+
+    E --> F["Guide me — AI mentorship"]
+    F --> F1["Understand the issue"]
+    F --> F2["Fork & branch steps"]
+    F --> F3["Which files to look at"]
+    F --> F4["Chat: what to change?"]
+    F --> F5["PR description draft"]
+    F1 & F2 & F3 & F4 & F5 --> G["You write the fix"]
+
+    E --> H["Track in dashboard"]
+    H --> H1["Sync · Overview"]
+    H --> H2["My Issues"]
+    H --> H3["PR inbox"]
+
+    G --> I["Open PR on GitHub"]
+    I --> J["Merge"]
+```
+
+### All feature flows
+
+| Feature | Route | Workflow doc |
+|---------|-------|----------------|
+| Sign in & session | — | [§1](docs/workflows.md#1-sign-in--session) |
+| GitHub sync | Overview | [§2](docs/workflows.md#2-github-sync) |
+| Overview dashboard | `/` | [§3](docs/workflows.md#3-overview-dashboard) |
+| Discover (good-first issues) | `/discover` | [§4](docs/workflows.md#4-discover--good-first-issues) |
+| AI mentor (Guide me) | agent panel | [§5](docs/workflows.md#5-ai-mentor-guide-me--agent-panel) |
+| My Issues | `/issues` | [§6](docs/workflows.md#6-my-issues) |
+| Pull requests inbox | Overview | [§7](docs/workflows.md#7-pull-requests-inbox) |
+| Repositories | `/repos`, `/repo/:owner/:name` | [§8](docs/workflows.md#8-repositories) |
+| Journey timeline | `/journey` | [§9](docs/workflows.md#9-journey-timeline) |
+| Explore contributors | `/explore` | [§10](docs/workflows.md#10-explore-other-contributors) |
+| Public portfolio | `/u/:username` | [§11](docs/workflows.md#11-public-portfolio) |
+| Weekly digest | `/digest` | [§12](docs/workflows.md#12-weekly-digest) |
+| Analytics & heatmap | Overview | [§13](docs/workflows.md#13-analytics--heatmap) |
+
+See also: [how features connect](docs/workflows.md#how-features-connect) and [planned vs shipped](docs/workflows.md#planned-vs-shipped).
+
 ## How it's built
 
 Monorepo with npm workspaces.
@@ -181,10 +232,13 @@ OSCT/
 │   └── migrations/                   # Versioned SQL migrations (auth, sync, agent, …)
 │
 ├── docs/                             # Design & setup notes
-│   ├── architecture.md
-│   ├── github-oauth.md
-│   ├── agent-integration.md
-│   └── requirements.md
+│   ├── workflows.md                  #     Feature workflows — master journey + 13 Mermaid
+│   │                                 #         flowcharts (auth, sync, Discover, agent, …)
+│   ├── architecture.md               #     System design overview
+│   ├── github-oauth.md               #     OAuth app setup
+│   ├── agent-integration.md          #     AI agent design
+│   ├── feature-plan.md               #     Roadmap notes
+│   └── requirements.md               #     Product requirements
 │
 ├── package.json                      # Workspace root scripts
 ├── tsconfig.base.json
@@ -199,6 +253,7 @@ OSCT/
 - GitHub API calls live only in `apps/api/src/infrastructure/github`
 - Charts / D3 live only in `apps/web/src/charts`
 - LLM / agent logic lives in `apps/api/src/services` + `infrastructure/llm`
+- Feature flows & journey diagrams → [`docs/workflows.md`](docs/workflows.md)
 
 GitHub data comes from a mix of the REST API and GraphQL — PRs and the heatmap through GraphQL, issues through search, commits from the contribution graph. Sync runs in the background after you click the button on the overview page.
 
