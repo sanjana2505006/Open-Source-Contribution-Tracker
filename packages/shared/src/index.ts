@@ -14,6 +14,12 @@ export type {
   AnalyticsBundle,
 } from './types/analytics.js';
 export type { FeedbackCategory, FeedbackItem, FeedbackList, FeedbackSubmit } from './types/feedback.js';
+export type {
+  GoodFirstIssueItem,
+  GoodFirstIssueRecommendations,
+  UserSkillLanguage,
+  UserSkillProfile,
+} from './types/recommendations.js';
 export type { PublicPortfolioHighlights, PortfolioInsights } from './types/portfolio.js';
 export type { ContributorProfile, PublicProfile, WatchedContributor } from './types/explore.js';
 export type {

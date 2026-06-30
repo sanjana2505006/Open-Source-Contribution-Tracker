@@ -28,6 +28,7 @@ export type GitHubSearchIssue = {
   html_url: string;
   created_at: string;
   updated_at: string;
+  labels?: { name: string }[];
   pull_request?: {
     merged_at: string | null;
     url: string;
@@ -164,6 +165,32 @@ export class GitHubApi {
       console.warn('Authenticated issue search failed, retrying public search:', err);
       return this.searchIssuesPublic(query);
     }
+  }
+
+  /** Single-page issue search — use for recommendations to avoid rate-limit storms. */
+  async searchIssuesPreview(query: string, perPage = 30): Promise<GitHubSearchIssue[]> {
+    try {
+      return await this.searchIssuesPreviewOnce(query, perPage, true);
+    } catch (err) {
+      console.warn('Authenticated issue preview search failed, retrying public:', err);
+      return this.searchIssuesPreviewOnce(query, perPage, false);
+    }
+  }
+
+  private async searchIssuesPreviewOnce(
+    query: string,
+    perPage: number,
+    auth: boolean,
+  ): Promise<GitHubSearchIssue[]> {
+    const data = await this.request<{
+      items: GitHubSearchIssue[];
+      incomplete_results: boolean;
+    }>(
+      `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=${perPage}&page=1`,
+      auth,
+    );
+
+    return data.items.filter((item) => !item.pull_request);
   }
 
   private async searchIssuesWithAuth(query: string): Promise<GitHubSearchIssue[]> {

@@ -32,6 +32,7 @@ import { AgentService } from './services/agentService.js';
 import { DigestService } from './services/digestService.js';
 import { createAgentRoutes } from './routes/agent.js';
 import { createDigestRoutes } from './routes/digest.js';
+import { createRecommendationsRoutes } from './routes/recommendations.js';
 import { getPool } from './infrastructure/db/pool.js';
 
 export function createApp(env: Env) {
@@ -60,6 +61,7 @@ export function createApp(env: Env) {
   const feedbackRoutes = createFeedbackRoutes(pool);
   const agentRoutes = createAgentRoutes(agent);
   const digestRoutes = createDigestRoutes(digest);
+  const recommendationsRoutes = createRecommendationsRoutes(pool, env);
 
   const app = express();
 
@@ -169,6 +171,9 @@ export function createApp(env: Env) {
   });
   app.get('/api/v1/journey', requireAuth, (req, res, next) => {
     journeyRoutes.bundle(req, res).catch(next);
+  });
+  app.get('/api/v1/recommendations/good-first-issues', requireAuth, (req, res, next) => {
+    recommendationsRoutes.goodFirstIssues(req, res).catch(next);
   });
 
   app.get('/api/v1/agent/status', (req, res, next) => {

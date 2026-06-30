@@ -44,6 +44,8 @@ type Props = {
   initialPrAiCheck?: boolean;
   /** @deprecated Use onInitialAiCheckDone */
   onInitialPrAiCheckDone?: () => void;
+  /** Beginner mentorship mode — issue → first PR roadmap */
+  variant?: 'default' | 'mentorship';
 };
 
 const DEFAULT_STARTERS = [
@@ -57,6 +59,13 @@ const PR_STARTERS = [
   'Summarize what this PR changes.',
   'What would a maintainer look for in review?',
   'How can I make this PR sound more thoughtful and less generic?',
+];
+
+const MENTORSHIP_STARTERS = [
+  'Which files should I look at first?',
+  'Suggest a branch name for this issue.',
+  'Draft my PR description.',
+  'What if I get stuck after forking?',
 ];
 
 export function AgentPanel({
@@ -73,19 +82,25 @@ export function AgentPanel({
   onInitialAiCheckDone,
   initialPrAiCheck = false,
   onInitialPrAiCheckDone,
+  variant = 'default',
 }: Props) {
   const runInitialAiCheck = initialAiCheck || initialPrAiCheck;
   const onRunInitialAiCheckDone = onInitialAiCheckDone ?? onInitialPrAiCheckDone;
+  const isMentorship = variant === 'mentorship';
   const isPrMode = Boolean(pullRequest);
   const isIssueMode = Boolean(issue);
   const canAiCheck = isPrMode || isIssueMode;
-  const resolvedStarters = starters ?? (isPrMode ? PR_STARTERS : DEFAULT_STARTERS);
-  const resolvedTitle = panelTitle ?? (isPrMode ? 'PR assistant' : 'Issue assistant');
+  const resolvedStarters =
+    starters ?? (isMentorship ? MENTORSHIP_STARTERS : isPrMode ? PR_STARTERS : DEFAULT_STARTERS);
+  const resolvedTitle =
+    panelTitle ?? (isMentorship ? 'Your mentor' : isPrMode ? 'PR assistant' : 'Issue assistant');
   const resolvedSubtitle =
     panelSubtitle ??
-    (isPrMode
-      ? 'Review pull requests, check if they read AI-generated, and get feedback before maintainers do.'
-      : 'Triage stuck issues, check if they read AI-generated, and post approved comments to GitHub.');
+    (isMentorship
+      ? 'From issue to merged PR — fork, branch, files, and your PR description.'
+      : isPrMode
+        ? 'Review pull requests, check if they read AI-generated, and get feedback before maintainers do.'
+        : 'Triage stuck issues, check if they read AI-generated, and post approved comments to GitHub.');
 
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [providerInfo, setProviderInfo] = useState<string | null>(null);
@@ -506,11 +521,13 @@ export function AgentPanel({
             className="agent-panel__input"
             rows={3}
             placeholder={
-              pullRequest
-                ? 'Ask about this pull request…'
-                : issue
-                  ? 'Ask about this stuck issue…'
-                  : 'Ask about your stuck issues or weekly plan…'
+              isMentorship
+                ? 'Ask about fork, branch, files, or your PR…'
+                : pullRequest
+                  ? 'Ask about this pull request…'
+                  : issue
+                    ? 'Ask about this stuck issue…'
+                    : 'Ask about your stuck issues or weekly plan…'
             }
             value={input}
             onChange={(event) => setInput(event.target.value)}

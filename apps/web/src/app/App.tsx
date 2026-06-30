@@ -14,6 +14,7 @@ import { FeedbackPage } from '../pages/FeedbackPage';
 import { PortfolioPage } from '../pages/PortfolioPage';
 import { RepoPage } from '../pages/RepoPage';
 import { DigestPage } from '../pages/DigestPage';
+import { DiscoverPage } from '../pages/DiscoverPage';
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
             <Route element={<Layout />}>
               <Route index element={<OverviewPage />} />
               <Route path="explore" element={<ExplorePage />} />
+              <Route path="discover" element={<DiscoverPage />} />
               <Route path="u/:username" element={<PortfolioPage />} />
               <Route path="repos" element={<RepositoriesPage />} />
               <Route path="repo/:owner/:name" element={<RepoPage />} />
