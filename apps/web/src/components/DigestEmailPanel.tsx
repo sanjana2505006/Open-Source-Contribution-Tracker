@@ -8,6 +8,7 @@ const DEFAULT_PREFS: DigestPreferences = {
   lastEmailSentAt: null,
   emailAvailable: false,
   emailDeliveryConfigured: false,
+  emailFromIsSandbox: false,
 };
 
 type Props = {
@@ -103,6 +104,17 @@ export function DigestEmailPanel({
         </p>
       )}
 
+      {data.emailAvailable && data.emailDeliveryConfigured && data.emailFromIsSandbox && isAdmin && (
+        <p className="digest-email-bar__sent" role="status">
+          Using Resend sandbox sender (<code>onboarding@resend.dev</code>). Digests only reach your
+          Resend account email. For other users, verify a domain at{' '}
+          <a href="https://resend.com/domains" target="_blank" rel="noreferrer">
+            resend.com/domains
+          </a>{' '}
+          and set <code>DIGEST_FROM_EMAIL</code> to an address on that domain, then redeploy.
+        </p>
+      )}
+
       {data.emailAvailable && !data.emailDeliveryConfigured && isAdmin && (
         <details
           className="digest-email-bar__setup"
@@ -118,12 +130,23 @@ export function DigestEmailPanel({
               </a>
             </li>
             <li>
+              For real users: verify a domain at{' '}
+              <a href="https://resend.com/domains" target="_blank" rel="noreferrer">
+                resend.com/domains
+              </a>
+              , then set <code>DIGEST_FROM_EMAIL</code> like{' '}
+              <code>OSCT &lt;digest@yourdomain.com&gt;</code> (not{' '}
+              <code>onboarding@resend.dev</code>)
+            </li>
+            <li>
               Add <code>RESEND_API_KEY</code> + <code>DIGEST_FROM_EMAIL</code> in{' '}
               <a href="https://dashboard.render.com" target="_blank" rel="noreferrer">
                 Render Environment
               </a>
             </li>
-            <li>Redeploy — check health shows <code>digestEmail: configured</code></li>
+            <li>
+              Redeploy — check health shows <code>digestEmail: configured</code>
+            </li>
           </ol>
         </details>
       )}

@@ -8,6 +8,7 @@ import type {
 } from '@osct/shared';
 import type { Env } from '../config/env.js';
 import { ResendClient } from '../infrastructure/email/resendClient.js';
+import { isResendSandboxFrom } from '../lib/digestEmailConfig.js';
 import { stuckDaysSince, stuckReason } from '../lib/stuckIssues.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { ContributionRepository } from '../repositories/contributionRepository.js';
@@ -20,8 +21,7 @@ const EMAIL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 function parseRoles(raw: { roles?: string[] } | null): IssueRole[] {
   const roles = raw?.roles ?? [];
   return roles.filter(
-    (role): role is IssueRole =>
-      role === 'assigned' || role === 'authored' || role === 'commented',
+    (role): role is IssueRole => role === 'assigned' || role === 'authored' || role === 'commented',
   );
 }
 
@@ -98,9 +98,7 @@ export class DigestService {
       }))
       .sort((a, b) => b.count - a.count);
 
-    const topPriorities = [...digestItems]
-      .sort((a, b) => b.stuckDays - a.stuckDays)
-      .slice(0, 5);
+    const topPriorities = [...digestItems].sort((a, b) => b.stuckDays - a.stuckDays).slice(0, 5);
 
     const now = new Date();
     const summary =
@@ -132,6 +130,7 @@ export class DigestService {
       lastEmailSentAt: prefs?.last_email_sent_at?.toISOString() ?? null,
       emailAvailable: Boolean(user?.email),
       emailDeliveryConfigured: this.isEmailConfigured(),
+      emailFromIsSandbox: isResendSandboxFrom(this.env.DIGEST_FROM_EMAIL),
     };
   }
 
@@ -202,12 +201,17 @@ export class DigestService {
 
     const { html, text } = renderDigestEmail(digest, user.username, this.env.WEB_ORIGIN);
 
-    await this.resend.send({
-      to: user.email,
-      subject,
-      html,
-      text,
-    });
+    try {
+      await this.resend.send({
+        to: user.email,
+        subject,
+        html,
+        text,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to send digest email';
+      throw new AppError(502, message, 'DIGEST_EMAIL_FAILED');
+    }
 
     await this.digests.upsertPreferences({ userId, emailEnabled: prefs?.email_enabled ?? true });
     await this.digests.markEmailSent(userId);

@@ -1,8 +1,17 @@
+import {
+  describeResendSendFailure,
+  isResendSandboxFrom,
+} from '../../lib/digestEmailConfig.js';
+
 export class ResendClient {
   constructor(
     private apiKey: string,
     private fromEmail: string,
   ) {}
+
+  get usingSandboxFrom(): boolean {
+    return isResendSandboxFrom(this.fromEmail);
+  }
 
   async send(input: { to: string; subject: string; html: string; text: string }): Promise<void> {
     const res = await fetch('https://api.resend.com/emails', {
@@ -22,7 +31,7 @@ export class ResendClient {
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Resend API failed (${res.status}): ${body.slice(0, 300)}`);
+      throw new Error(describeResendSendFailure(res.status, body));
     }
   }
 }

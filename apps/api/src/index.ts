@@ -5,6 +5,7 @@ import { closePool, getPool } from './infrastructure/db/pool.js';
 import { runMigrations } from './infrastructure/db/migrate.js';
 
 import { getAgentStartupMessage } from './services/agentLlm.js';
+import { getDigestEmailStartupMessage } from './lib/digestEmailConfig.js';
 
 async function main() {
   const env = loadEnv();
@@ -15,6 +16,7 @@ async function main() {
   const app = createApp(env);
 
   console.log(getAgentStartupMessage(env));
+  console.log(getDigestEmailStartupMessage(env));
 
   const server = app.listen(env.PORT, () => {
     console.log(`API listening on http://localhost:${env.PORT}`);

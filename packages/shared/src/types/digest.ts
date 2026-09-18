@@ -32,6 +32,11 @@ export type DigestPreferences = {
   lastEmailSentAt: string | null;
   emailAvailable: boolean;
   emailDeliveryConfigured: boolean;
+  /**
+   * True when DIGEST_FROM_EMAIL is Resend's sandbox sender (onboarding@resend.dev).
+   * Sandbox only delivers to the Resend account owner — not other users.
+   */
+  emailFromIsSandbox?: boolean;
 };
 
 export type DigestPreferencesUpdate = {
