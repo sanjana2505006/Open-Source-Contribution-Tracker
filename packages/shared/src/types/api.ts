@@ -6,6 +6,4 @@ export type HealthResponse = {
   /** Resend API key + from address configured for digest email */
   digestEmail?: 'configured' | 'disabled';
   timestamp: string;
-  /** Git commit deployed on Render — use to confirm latest code is live. */
-  version?: string | null;
 };

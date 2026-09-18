@@ -31,7 +31,6 @@ export function createHealthHandler(env: Env) {
       digest: digestReady ? 'ready' : 'pending',
       digestEmail,
       timestamp: new Date().toISOString(),
-      version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null,
     };
 
     res.status(dbUp ? 200 : 503).json({ data: body });
