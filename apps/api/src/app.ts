@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Env } from './config/env.js';
@@ -68,6 +69,37 @@ export function createApp(env: Env) {
   if (env.NODE_ENV === 'production') {
     app.set('trust proxy', 1);
   }
+
+  // Security headers: hide Express, block clickjacking, set CSP for the SPA, etc.
+  app.use(
+    helmet({
+      // Default COEP can break cross-origin images (e.g. GitHub avatars).
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          // Inline theme bootstrap in index.html; Vite bundles scripts as self.
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://avatars.githubusercontent.com',
+            'https://*.githubusercontent.com',
+          ],
+          connectSrc: ["'self'", 'https://api.github.com'],
+          frameSrc: ["'none'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'", 'https://github.com'],
+          // Clickjacking protection (also covered by X-Frame-Options via frameguard).
+          frameAncestors: ["'none'"],
+        },
+      },
+    }),
+  );
 
   app.use(
     cors({
