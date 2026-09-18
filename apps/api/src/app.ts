@@ -66,6 +66,7 @@ export function createApp(env: Env) {
   const recommendationsRoutes = createRecommendationsRoutes(pool, env);
 
   const app = express();
+  app.disable('x-powered-by');
 
   if (env.NODE_ENV === 'production') {
     app.set('trust proxy', 1);
