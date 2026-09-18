@@ -1,0 +1,32 @@
+# OSCT on Fly.io — https://fly.io/docs/
+# Change `app` if the name is taken: fly apps create <name>
+
+app = 'osct-sanjana'
+primary_region = 'bom'
+
+[build]
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep one machine warm so the site opens fast (small ongoing cost).
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '30s'
+    method = 'GET'
+    path = '/api/v1/health'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

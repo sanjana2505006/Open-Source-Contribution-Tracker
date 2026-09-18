@@ -55,21 +55,21 @@ flowchart TD
 
 ### All feature flows
 
-| Feature | Route | Workflow doc |
-|---------|-------|----------------|
-| Sign in & session | — | [§1](docs/workflows.md#1-sign-in--session) |
-| GitHub sync | Overview | [§2](docs/workflows.md#2-github-sync) |
-| Overview dashboard | `/` | [§3](docs/workflows.md#3-overview-dashboard) |
-| Discover (good-first issues) | `/discover` | [§4](docs/workflows.md#4-discover--good-first-issues) |
-| AI mentor (Guide me) | agent panel | [§5](docs/workflows.md#5-ai-mentor-guide-me--agent-panel) |
-| My Issues | `/issues` | [§6](docs/workflows.md#6-my-issues) |
-| Pull requests inbox | Overview | [§7](docs/workflows.md#7-pull-requests-inbox) |
-| Repositories | `/repos`, `/repo/:owner/:name` | [§8](docs/workflows.md#8-repositories) |
-| Journey timeline | `/journey` | [§9](docs/workflows.md#9-journey-timeline) |
-| Explore contributors | `/explore` | [§10](docs/workflows.md#10-explore-other-contributors) |
-| Public portfolio | `/u/:username` | [§11](docs/workflows.md#11-public-portfolio) |
-| Weekly digest | `/digest` | [§12](docs/workflows.md#12-weekly-digest) |
-| Analytics & heatmap | Overview | [§13](docs/workflows.md#13-analytics--heatmap) |
+| Feature                      | Route                          | Workflow doc                                              |
+| ---------------------------- | ------------------------------ | --------------------------------------------------------- |
+| Sign in & session            | —                              | [§1](docs/workflows.md#1-sign-in--session)                |
+| GitHub sync                  | Overview                       | [§2](docs/workflows.md#2-github-sync)                     |
+| Overview dashboard           | `/`                            | [§3](docs/workflows.md#3-overview-dashboard)              |
+| Discover (good-first issues) | `/discover`                    | [§4](docs/workflows.md#4-discover--good-first-issues)     |
+| AI mentor (Guide me)         | agent panel                    | [§5](docs/workflows.md#5-ai-mentor-guide-me--agent-panel) |
+| My Issues                    | `/issues`                      | [§6](docs/workflows.md#6-my-issues)                       |
+| Pull requests inbox          | Overview                       | [§7](docs/workflows.md#7-pull-requests-inbox)             |
+| Repositories                 | `/repos`, `/repo/:owner/:name` | [§8](docs/workflows.md#8-repositories)                    |
+| Journey timeline             | `/journey`                     | [§9](docs/workflows.md#9-journey-timeline)                |
+| Explore contributors         | `/explore`                     | [§10](docs/workflows.md#10-explore-other-contributors)    |
+| Public portfolio             | `/u/:username`                 | [§11](docs/workflows.md#11-public-portfolio)              |
+| Weekly digest                | `/digest`                      | [§12](docs/workflows.md#12-weekly-digest)                 |
+| Analytics & heatmap          | Overview                       | [§13](docs/workflows.md#13-analytics--heatmap)            |
 
 See also: [how features connect](docs/workflows.md#how-features-connect) and [planned vs shipped](docs/workflows.md#planned-vs-shipped).
 
@@ -77,12 +77,12 @@ See also: [how features connect](docs/workflows.md#how-features-connect) and [pl
 
 Monorepo with npm workspaces.
 
-| part | tech |
-|------|------|
+| part     | tech                              |
+| -------- | --------------------------------- |
 | frontend | React, TypeScript, Vite, Tailwind |
-| backend | Express, TypeScript |
-| database | PostgreSQL |
-| auth | GitHub OAuth |
+| backend  | Express, TypeScript               |
+| database | PostgreSQL                        |
+| auth     | GitHub OAuth                      |
 
 ## Project structure
 
@@ -235,6 +235,7 @@ OSCT/
 │   ├── workflows.md                  #     Feature workflows — master journey + 13 Mermaid
 │   │                                 #         flowcharts (auth, sync, Discover, agent, …)
 │   ├── architecture.md               #     System design overview
+│   ├── deploy-fly.md                 #     Fly.io deploy (always-on alternative to Render)
 │   ├── github-oauth.md               #     OAuth app setup
 │   ├── agent-integration.md          #     AI agent design
 │   ├── feature-plan.md               #     Roadmap notes
@@ -242,6 +243,8 @@ OSCT/
 │
 ├── package.json                      # Workspace root scripts
 ├── tsconfig.base.json
+├── Dockerfile                        #     Production image for Fly.io
+├── fly.toml                          #     Fly.io app config
 ├── render.yaml                       # Render.com deploy blueprint
 ├── .env.example
 └── LICENSE
@@ -292,20 +295,20 @@ npm start
 
 Set `NODE_ENV=production`, `DATABASE_URL`, OAuth credentials, `SESSION_SECRET`, and point both `WEB_ORIGIN` and `API_ORIGIN` at your public URL. Details in [docs/github-oauth.md](docs/github-oauth.md) for the callback URL.
 
-There's a `render.yaml` in the repo if you want to deploy from that.
+There's a `render.yaml` in the repo if you want to deploy from that. For a faster always-on option, see **[docs/deploy-fly.md](docs/deploy-fly.md)** (Fly.io).
 
 ## Scripts
 
-| command | what it does |
-|---------|----------------|
-| `npm run dev` | api + web together |
-| `npm run build` | build everything |
-| `npm run start` | production api (after build) |
-| `npm run db:migrate` | run pending migrations |
-| `npm run typecheck` | typecheck all packages |
-| `npm test` | API unit + smoke tests (Vitest) |
-| `npm run lint` | ESLint across the monorepo |
-| `npm run format` | Prettier write |
+| command                | what it does                      |
+| ---------------------- | --------------------------------- |
+| `npm run dev`          | api + web together                |
+| `npm run build`        | build everything                  |
+| `npm run start`        | production api (after build)      |
+| `npm run db:migrate`   | run pending migrations            |
+| `npm run typecheck`    | typecheck all packages            |
+| `npm test`             | API unit + smoke tests (Vitest)   |
+| `npm run lint`         | ESLint across the monorepo        |
+| `npm run format`       | Prettier write                    |
 | `npm run format:check` | Prettier check (optional locally) |
 
 ## Notes
