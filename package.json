@@ -13,12 +13,23 @@
     "build:render": "npm install --include=dev && npm run build",
     "start": "npm run start --workspace=@osct/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace=@osct/api",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:migrate": "npm run db:migrate --workspace=@osct/api"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.8",
+    "typescript-eslint": "^8.70.0"
   }
 }

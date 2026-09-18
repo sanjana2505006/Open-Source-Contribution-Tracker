@@ -20,3 +20,7 @@ jobs:
       - run: npm ci
       - run: npm run build --workspace=@osct/shared
       - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+      # Use `npm run format` / `format:check` locally; not gated in CI yet
+      # to avoid a forced repo-wide Prettier rewrite in this change.

@@ -1,4 +1,4 @@
-import type { AnalyticsBundle, PullRequestStats } from './analytics.js';
+import type { AnalyticsBundle } from './analytics.js';
 import type { PortfolioInsights } from './portfolio.js';
 import type { PublicPortfolioHighlights } from './portfolio.js';
 import type { RepositorySummary, StatsSummary } from './sync.js';

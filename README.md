@@ -303,6 +303,10 @@ There's a `render.yaml` in the repo if you want to deploy from that.
 | `npm run start` | production api (after build) |
 | `npm run db:migrate` | run pending migrations |
 | `npm run typecheck` | typecheck all packages |
+| `npm test` | API unit + smoke tests (Vitest) |
+| `npm run lint` | ESLint across the monorepo |
+| `npm run format` | Prettier write |
+| `npm run format:check` | Prettier check (optional locally) |
 
 ## Notes
 
