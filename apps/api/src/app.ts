@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { attachSession, requireAuth } from './middleware/auth.js';
 import { requireAdmin } from './middleware/admin.js';
 import { createActivityMiddleware } from './middleware/activity.js';
+import { feedbackRateLimit } from './middleware/feedbackRateLimit.js';
 import { SessionRepository } from './repositories/sessionRepository.js';
 import { createAdminRoutes } from './routes/admin.js';
 import { createHealthHandler } from './routes/health.js';
@@ -131,7 +132,7 @@ export function createApp(env: Env) {
     adminRoutes.feedbackList(req, res).catch(next);
   });
 
-  app.post('/api/v1/feedback', (req, res, next) => {
+  app.post('/api/v1/feedback', feedbackRateLimit, (req, res, next) => {
     feedbackRoutes.submit(req, res).catch(next);
   });
 
