@@ -23,6 +23,9 @@ export function AppFooter() {
           <LinkedInIcon />
           LinkedIn
         </a>
+        <Link to="/privacy" className="app-footer__link">
+          Privacy
+        </Link>
         <Link to="/feedback" className="app-footer__link">
           Feedback
         </Link>
